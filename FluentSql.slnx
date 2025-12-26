@@ -3,5 +3,5 @@
     <File Path=".gitignore" />
   </Folder>
   <Project Path="src/FluentSqlLib/FluentSqlLib.csproj" />
-  <Project Path="test/TestProject1/TestProject1.csproj" />
+  <Project Path="test/TestFluentSqlLib/TestFluentSqlLib.csproj" />
 </Solution>
