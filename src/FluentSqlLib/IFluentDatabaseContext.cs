@@ -2,4 +2,5 @@
 
 public interface IFluentDatabaseContext
 {
+    string Name { get; }
 }

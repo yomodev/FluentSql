@@ -1,23 +1,26 @@
-﻿using Microsoft.Data.SqlClient;
+﻿using FluentSqlLib;
+using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace TestFluentSqlLib;
 
 public class LocalDbFixture : IAsyncLifetime
 {
     public string ConnectionString { get; private set; } = default!;
+    
+    public string DatabaseName { get; private set; } = default!;
 
-    private string _dbName = default!;
     private string _mdf = default!;
     private string _ldf = default!;
 
     public async Task InitializeAsync()
     {
-        _dbName = $"TestDb_{Guid.NewGuid():N}";
+        DatabaseName = $"TestDb_{Guid.NewGuid():N}";
         var baseDir = Path.Combine(Path.GetTempPath(), "LocalDbTests");
         Directory.CreateDirectory(baseDir);
 
-        _mdf = Path.Combine(baseDir, $"{_dbName}.mdf");
-        _ldf = Path.Combine(baseDir, $"{_dbName}_log.ldf");
+        _mdf = Path.Combine(baseDir, $"{DatabaseName}.mdf");
+        _ldf = Path.Combine(baseDir, $"{DatabaseName}_log.ldf");
 
         var masterConn = "Server=(localdb)\\MSSQLLocalDB;Integrated Security=true;";
 
@@ -25,15 +28,15 @@ public class LocalDbFixture : IAsyncLifetime
         await conn.OpenAsync();
 
         var createDbCmd = $@"
-            CREATE DATABASE [{_dbName}]
-            ON (NAME = N'{_dbName}', FILENAME = '{_mdf}')
-            LOG ON (NAME = N'{_dbName}_log', FILENAME = '{_ldf}');
+            CREATE DATABASE [{DatabaseName}]
+            ON (NAME = N'{DatabaseName}', FILENAME = '{_mdf}')
+            LOG ON (NAME = N'{DatabaseName}_log', FILENAME = '{_ldf}');
         ";
 
         using var cmd = new SqlCommand(createDbCmd, conn);
         await cmd.ExecuteNonQueryAsync();
 
-        ConnectionString = $"Server=(localdb)\\MSSQLLocalDB;Database={_dbName};Integrated Security=true;TrustServerCertificate=True;";
+        ConnectionString = $"Server=(localdb)\\MSSQLLocalDB;Database={DatabaseName};Integrated Security=true;TrustServerCertificate=True;";
     }
 
     public static async Task RunScripts(string connectionString, string directory)
@@ -65,17 +68,28 @@ public class LocalDbFixture : IAsyncLifetime
         var killConnections = $@"
             DECLARE @kill VARCHAR(max)='';
             SELECT @kill = @kill + 'KILL ' + CONVERT(varchar(5), session_id) + ';'
-            FROM sys.dm_exec_sessions WHERE database_id = DB_ID('{_dbName}');
+            FROM sys.dm_exec_sessions WHERE database_id = DB_ID('{DatabaseName}');
             EXEC(@kill);
         ";
         using var killCmd = new SqlCommand(killConnections, conn);
         await killCmd.ExecuteNonQueryAsync();
 
-        using var dropCmd = new SqlCommand($"DROP DATABASE IF EXISTS [{_dbName}];", conn);
+        using var dropCmd = new SqlCommand($"DROP DATABASE IF EXISTS [{DatabaseName}];", conn);
         await dropCmd.ExecuteNonQueryAsync();
 
         TryDelete(_mdf);
         TryDelete(_ldf);
+    }
+
+    public FluentSql<FluentSqlSettings> CreateFluentSql()
+    {
+        var logger = NullLogger<FluentSqlSettings>.Instance;
+        var settings = new FluentSqlSettings
+        {
+            ConnectionString = ConnectionString
+        };
+
+        return new FluentSql<FluentSqlSettings>(logger, settings);
     }
 
     private static void TryDelete(string path)
