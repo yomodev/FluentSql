@@ -8,5 +8,5 @@ public interface IFluentQueryContext
     /// </summary>
     /// <param name="cancellationToken">A cancellation token that can be used to cancel the asynchronous operation.</param>
     /// <returns>An integer representing the result of the operation.</returns>
-    Task<int> ExecuteAsync(CancellationToken cancellationToken = default);
+    ValueTask<int> ExecuteAsync(CancellationToken cancellationToken = default);
 }

@@ -1,10 +1,12 @@
 
 namespace FluentSqlLib;
 
-public class FluentQueryContext(IFluentSqlClient client, string sql) : IFluentQueryContext
+public class FluentQueryContext(IFluentSql fluentSql, string sql) 
+    : IFluentQueryContext, IFluentDeleteQueryContext, IFluentInsertQueryContext, 
+    IFluentSelectQueryContext, IFluentUpdateQueryContext
 {
     // Add query operations here (Execute, WithParameter, etc.)
-    public Task<int> ExecuteAsync(CancellationToken cancellationToken = default)
+    public ValueTask<int> ExecuteAsync(CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }

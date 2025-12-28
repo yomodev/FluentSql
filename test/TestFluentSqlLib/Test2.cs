@@ -1,9 +1,6 @@
 ﻿using Microsoft.Data.SqlClient;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
-namespace TestProject1;
+namespace TestFluentSqlLib;
 
 [Collection("SharedLocalDb")]
 public class ReadTests(LocalDbFixture db)

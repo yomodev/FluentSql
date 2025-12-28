@@ -17,11 +17,11 @@ public interface ISpParam : ISpNoParam
 
 public interface ISpNoParam : ISingleRowResult, IMultipleRowsResult, IMultipleResults
 {
-    Task<IReadOnlyDictionary<string, object?>> GetOutputAsync(CancellationToken cancellationToken = default);
+    ValueTask<IReadOnlyDictionary<string, object?>> GetOutputAsync(CancellationToken cancellationToken = default);
 
-    Task<T> GetOutputAsync<T>(CancellationToken cancellationToken = default);
+    ValueTask<T> GetOutputAsync<T>(CancellationToken cancellationToken = default);
 
-    Task<T?> GetOutputAsync<T>(string column, CancellationToken cancellationToken = default);
+    ValueTask<T?> GetOutputAsync<T>(string column, CancellationToken cancellationToken = default);
 
-    Task<T> GetOutputAsync<T>(string column, T defaultValue, CancellationToken cancellationToken = default);
+    ValueTask<T> GetOutputAsync<T>(string column, T defaultValue, CancellationToken cancellationToken = default);
 }

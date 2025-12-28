@@ -1,6 +1,6 @@
 namespace FluentSqlLib;
 
-public class FluentSqlTransaction(IFluentSqlClient client) : IFluentSqlTransaction
+public class FluentSqlTransaction(IFluentSql client) : IFluentSqlTransaction
 {
     private bool _transactionCompleted;
     private bool disposedValue;

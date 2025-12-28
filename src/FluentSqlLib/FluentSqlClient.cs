@@ -3,80 +3,50 @@ using System.Runtime.CompilerServices;
 
 namespace FluentSqlLib;
 
-public class FluentSqlClient<TSettings>(ILogger<TSettings> logger, TSettings settings)
-    : IFluentSqlClient, IDisposable
+public class FluentSqlClient<TSettings>(
+    ILogger<TSettings> logger,
+    TSettings settings,
+    string query)
+    : IFluentSqlClient
     where TSettings : IFluentSqlSettings
 {
     private bool _disposed;
-    //private SqlConnection? _connection;
+    private SqlConnection? _connection;
+    private SqlCommand? _command;
 
-    public IFluentDatabaseContext CurrentDatabase => throw new NotImplementedException();
-
-    public async IAsyncEnumerable<string> ListDatabasesAsync(
+    public async IAsyncEnumerable<IDataReader> EnumerateAsync(
+        CommandBehavior behavior,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        /*var connection = await adoClient.OpenConnectionAsync(cancellationToken);
-        using var command = connection.CreateCommand();
-        command.CommandText = "SELECT name FROM sys.databases";
-        using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        await Connect(cancellationToken);
+        using var reader = await _command!.ExecuteReaderAsync(behavior, cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
         {
-            yield return reader.GetString(0);
-        }*/
-        yield break;
+            yield return reader;
+        }
+        while (reader.NextResult())
+        {
+        }
     }
-    /*
-    internal async Task<SqlConnection> OpenConnectionAsync(CancellationToken cancellationToken = default)
+
+    public IAsyncEnumerable<IDataReader> EnumerateAsync(CancellationToken cancellationToken = default)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        
+        var behavior = CommandBehavior.SingleResult | CommandBehavior.SequentialAccess | CommandBehavior.CloseConnection;
+        return EnumerateAsync(behavior, cancellationToken);
+    }
+
+    internal async ValueTask<SqlConnection> Connect(CancellationToken cancellation)
+    {
         _connection ??= new SqlConnection(settings.ConnectionString);
-        
-        if (_connection.State != ConnectionState.Open)
+        if (_connection.State != System.Data.ConnectionState.Open)
         {
-            await _connection.OpenAsync(cancellationToken);
-        }
+            await _connection.OpenAsync(cancellation);
+        }    
 
+        _command = _connection.CreateCommand();
+        _command.CommandText = query;
         return _connection;
-    }*/
-
-    public IFluentSqlTransaction BeginTransaction()
-    {
-        return new FluentSqlTransaction(this);
     }
-
-    public IFluentDatabaseContext Database(string name)=>
-        new FluentDatabaseContext(this, name);
-
-    public void ExecuteTransaction(Action<IFluentSqlTransaction> action)
-    {
-        var tran = BeginTransaction();
-        try
-        {
-            action(tran);
-            tran.Commit();
-        }
-        catch
-        {
-            tran.Rollback();
-            throw;
-        }
-        finally
-        {
-            tran.Dispose();
-        }
-    }
-    public IFluentQueryContext Query(string sql)=>
-        new FluentQueryContext(this, sql);
-
-    public IFluentStoredProcedureContext StoredProcedure(string name) =>
-        new FluentStoredProcedureContext(this, name);
-
-    public IFluentTableContext Table(string name)=> 
-        new FluentTableContext(this, name);
-
-    public IFluentUdfContext Udf(string name) => 
-        new FluentUdfContext(this, name);
 
     public void Dispose()
     {
@@ -97,25 +67,5 @@ public class FluentSqlClient<TSettings>(ILogger<TSettings> logger, TSettings set
         }
 
         _disposed = true;
-    }
-
-    public IFluentDeleteQueryContext Delete(string name)
-    {
-        throw new NotImplementedException();
-    }
-
-    public IFluentInsertQueryContext Insert(string name)
-    {
-        throw new NotImplementedException();
-    }
-
-    public IFluentSelectQueryContext Select(string name)
-    {
-        throw new NotImplementedException();
-    }
-
-    public IFluentUpdateQueryContext Update(string name)
-    {
-        throw new NotImplementedException();
     }
 }

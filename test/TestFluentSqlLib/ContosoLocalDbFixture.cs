@@ -2,7 +2,7 @@
 using Microsoft.SqlServer.Management.Common;
 using Microsoft.SqlServer.Management.Smo;
 
-namespace TestProject1;
+namespace TestFluentSqlLib;
 
 public sealed class ContosoLocalDbFixture : IDisposable
 {

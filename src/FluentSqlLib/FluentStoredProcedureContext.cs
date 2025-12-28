@@ -1,54 +1,54 @@
 
 namespace FluentSqlLib;
 
-public class FluentStoredProcedureContext(IFluentSqlClient client, string procedureName) : IFluentStoredProcedureContext
+public class FluentStoredProcedureContext(IFluentSql fluentSql, string procedureName) : IFluentStoredProcedureContext
 {
     public IAsyncEnumerable<T> EnumerateAsync<T>(CancellationToken cancellationToken)
     {
         throw new NotImplementedException();
     }
 
-    public Task<T> GetAsync<T>(CancellationToken cancellationToken = default)
+    public ValueTask<T> GetAsync<T>(CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }
 
-    public Task<T?> GetAsync<T>(string column, CancellationToken cancellationToken = default)
+    public ValueTask<T?> GetAsync<T>(string column, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }
 
-    public Task<T> GetAsync<T>(string column, T defaultValue, CancellationToken cancellationToken = default)
+    public ValueTask<T> GetAsync<T>(string column, T defaultValue, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }
 
-    public Task<IReadOnlyDictionary<string, object?>> GetOutputAsync(CancellationToken cancellationToken = default)
+    public ValueTask<IReadOnlyDictionary<string, object?>> GetOutputAsync(CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }
 
-    public Task<T> GetOutputAsync<T>(CancellationToken cancellationToken = default)
+    public ValueTask<T> GetOutputAsync<T>(CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }
 
-    public Task<T?> GetOutputAsync<T>(string column, CancellationToken cancellationToken = default)
+    public ValueTask<T?> GetOutputAsync<T>(string column, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }
 
-    public Task<T> GetOutputAsync<T>(string column, T defaultValue, CancellationToken cancellationToken = default)
+    public ValueTask<T> GetOutputAsync<T>(string column, T defaultValue, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }
 
-    public Task<T> GetRequiredAsync<T>(CancellationToken cancellationToken = default)
+    public ValueTask<T> GetRequiredAsync<T>(CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }
 
-    public Task<T> GetRequiredAsync<T>(string column, CancellationToken cancellationToken = default)
+    public ValueTask<T> GetRequiredAsync<T>(string column, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }

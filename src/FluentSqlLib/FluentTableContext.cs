@@ -1,14 +1,14 @@
 
 namespace FluentSqlLib;
 
-public class FluentTableContext(IFluentSqlClient client, string tableName) : IFluentTableContext
+public class FluentTableContext(IFluentSql fluentSql, string tableName) : IFluentTableContext
 {
-    public Task<bool> DropAsync(CancellationToken cancellationToken = default)
+    public ValueTask<bool> DropAsync(CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }
 
-    public Task<long> InsertManyAsync<T>(IEnumerable<T> rows, CancellationToken cancellationToken = default)
+    public ValueTask<long> InsertManyAsync<T>(IEnumerable<T> rows, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }

@@ -1,6 +1,6 @@
 ﻿using Microsoft.Data.SqlClient;
 
-namespace TestProject1;
+namespace TestFluentSqlLib;
 
 public class LocalDbFixture : IAsyncLifetime
 {

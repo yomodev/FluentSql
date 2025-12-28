@@ -2,5 +2,5 @@
 
 public interface IDrop
 {
-    Task<bool> DropAsync(CancellationToken cancellationToken = default);
+    ValueTask<bool> DropAsync(CancellationToken cancellationToken = default);
 }

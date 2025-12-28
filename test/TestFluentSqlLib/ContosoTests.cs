@@ -1,6 +1,6 @@
 ﻿using Microsoft.Data.SqlClient;
 
-namespace TestProject1;
+namespace TestFluentSqlLib;
 
 // download from
 // https://github.com/sql-bi/Contoso-Data-Generator/releases/tag/v1.0.0

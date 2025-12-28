@@ -1,5 +1,6 @@
-﻿namespace TestProject1;
+﻿namespace TestFluentSqlLib;
 
 [CollectionDefinition("SharedLocalDb")]
-public class SharedLocalDbCollection : ICollectionFixture<LocalDbFixture> { 
+public class SharedLocalDbCollection : ICollectionFixture<LocalDbFixture>
+{
 }
