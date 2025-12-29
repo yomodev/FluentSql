@@ -2,7 +2,7 @@
 
 namespace FluentSqlLib;
 
-public interface IFluentTableContext : IDrop
+public interface IFluentTableContext
 {
     ValueTask<long> InsertManyAsync<T>(IEnumerable<T> rows, CancellationToken cancellationToken = default);
 }

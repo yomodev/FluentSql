@@ -6,6 +6,12 @@ public interface IFluentSql
 
     IFluentDatabaseContext CurrentDatabase { get; }
 
+    IFluentSqlClient CreateClient(string query);
+
+    //IFluentSqlClient CreateDdlClient(string sql);
+
+    IFluentSqlClient CreateSPClient(string v);
+
     IFluentDatabaseContext Database(string name);
 
     IFluentDeleteQueryContext Delete(string name);

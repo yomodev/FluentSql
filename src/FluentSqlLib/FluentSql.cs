@@ -29,6 +29,9 @@ public class FluentSql<TSettings>(ILogger<TSettings> logger, TSettings settings)
     public IFluentSqlClient CreateClient(string query)
         => new FluentSqlClient<TSettings>(logger, settings, query);
 
+    public IFluentSqlClient CreateSPClient(string procedureName)
+        => new FluentSpClient<TSettings>(logger, settings, procedureName);
+
     public IFluentSqlTransaction BeginTransaction()
     {
         return new FluentSqlTransaction(this);
