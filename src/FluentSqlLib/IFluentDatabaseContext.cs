@@ -5,24 +5,24 @@ public interface IFluentDatabaseContext
     string Name { get; }
 
     ValueTask<bool> DropIndexAsync(
-        string name, CancellationToken cancellationToken = default);
+        string indexName, CancellationToken cancellationToken = default);
 
     ValueTask<bool> DropStoredProcedureAsync(
-        string name, CancellationToken cancellationToken = default);
+        string procedureName, CancellationToken cancellationToken = default);
 
     ValueTask<bool> DropTableAsync(
-        string name, CancellationToken cancellationToken = default);
+        string tableName, CancellationToken cancellationToken = default);
 
-    ValueTask<bool> DropUdfAsync(
-        string name, CancellationToken cancellationToken = default);
+    ValueTask<bool> DropFunctionAsync(
+        string functionName, CancellationToken cancellationToken = default);
 
     ValueTask<bool> DropViewAsync(
-        string name, CancellationToken cancellationToken = default);
+        string viewName, CancellationToken cancellationToken = default);
 
     IAsyncEnumerable<string> ListSchemasAsync(
         CancellationToken cancellationToken = default);
 
-    IAsyncEnumerable<string> ListUdfsAsync(
+    IAsyncEnumerable<string> ListFunctionsAsync(
         CancellationToken cancellationToken = default);
 
 
@@ -35,4 +35,7 @@ public interface IFluentDatabaseContext
 
     IAsyncEnumerable<string> ListViewsAsync(
         CancellationToken cancellationToken = default);
+
+    ValueTask<bool> TruncateTableAsync(
+        string tableName, CancellationToken cancellationToken = default);
 }

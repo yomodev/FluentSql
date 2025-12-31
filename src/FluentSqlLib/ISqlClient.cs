@@ -1,17 +1,16 @@
 namespace FluentSqlLib;
 
-public interface IFluentSqlClient : IDisposable
+public interface ISqlClient : IDisposable
 {
     IAsyncEnumerable<IDataReader> EnumerateAsync(
-        CommandBehavior behavior,
         CancellationToken cancellationToken = default);
-
-    IAsyncEnumerable<IDataReader> EnumerateAsync(
-        CancellationToken cancellationToken = default);
+   
     IAsyncEnumerable<T> EnumerateAsync<T>(
         CancellationToken cancellationToken = default);
 
     IEnumerable<IDataReader> Enumerate();
+
+    ValueTask<int> ExecuteAsync();
 
     ValueTask<T> GetAsync<T>(
         CancellationToken cancellationToken = default);
@@ -51,11 +50,11 @@ public interface IFluentSqlClient : IDisposable
         IEnumerable<T> rows, 
         CancellationToken cancellationToken = default);
 
-    ISpParam WithOutputParam<T>(string paramName, T value);
+    ISqlParam WithOutputParam<T>(string paramName, T value);
 
-    ISpParam WithParam<T>(string paramName, T value);
+    ISqlParam WithParam<T>(string paramName, T value);
 
-    ISpParam WithParam<T>(
+    ISqlParam WithParam<T>(
         string paramName,
         IEnumerable<T> tableValued,
         string tableTypeName);

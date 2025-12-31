@@ -2,15 +2,11 @@ namespace FluentSqlLib;
 
 public interface IFluentSql
 {
-    IFluentSqlTransaction BeginTransaction();
-
     IFluentDatabaseContext CurrentDatabase { get; }
 
-    IFluentSqlClient CreateClient(string query);
+    IFluentSqlTransaction BeginTransaction();
 
-    //IFluentSqlClient CreateDdlClient(string sql);
-
-    IFluentSqlClient CreateSPClient(string v);
+    ISqlClient CreateClient(IQuery query);
 
     IFluentDatabaseContext Database(string name);
 

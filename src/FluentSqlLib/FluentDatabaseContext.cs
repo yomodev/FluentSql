@@ -7,59 +7,77 @@ public class FluentDatabaseContext(IFluentSql fluentSql, string databaseName)
 {
     public string Name => databaseName;
 
-    public ValueTask<bool> DropIndexAsync(string name, CancellationToken cancellationToken = default)
+    public async ValueTask<bool> DropIndexAsync(
+        string indexName, CancellationToken cancellationToken = default)
     {
-        string sql = $@"DROP INDEX {name} ON [{Name}]";
-        //using var client = fluentSql.CreateDdlClient(sql);
-        throw new NotImplementedException();
+        // TODO make generic for other providers and verify existence before dropping
+        var sql = new NoResultQuery($@"DROP INDEX {indexName} ON [{Name}]");
+        using var client = fluentSql.CreateClient(sql);
+        return await client.ExecuteAsync() != 0;
     }
 
-    public ValueTask<bool> DropStoredProcedureAsync(string name, CancellationToken cancellationToken = default)
+    public async ValueTask<bool> DropStoredProcedureAsync(
+        string procedureName, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        // TODO make generic for other providers and verify existence before dropping
+        var sql = new NoResultQuery($@"DROP PROCEDURE {procedureName} ON [{Name}]");
+        using var client = fluentSql.CreateClient(sql);
+        return await client.ExecuteAsync() != 0;
     }
 
-    public ValueTask<bool> DropTableAsync(string name, CancellationToken cancellationToken = default)
+    public async ValueTask<bool> DropTableAsync(
+        string tableName, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        // TODO make generic for other providers and verify existence before dropping
+        var sql = new NoResultQuery($@"DROP TABLE {tableName} ON [{Name}]");
+        using var client = fluentSql.CreateClient(sql);
+        return await client.ExecuteAsync() != 0;
     }
 
-    public ValueTask<bool> DropUdfAsync(string name, CancellationToken cancellationToken = default)
+    public async ValueTask<bool> DropFunctionAsync(
+        string functionName, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        // TODO make generic for other providers and verify existence before dropping
+        var sql = new NoResultQuery($@"DROP FUNCTION {functionName} ON [{Name}]");
+        using var client = fluentSql.CreateClient(sql);
+        return await client.ExecuteAsync() != 0;
     }
 
-    public ValueTask<bool> DropViewAsync(string name, CancellationToken cancellationToken = default)
+    public async ValueTask<bool> DropViewAsync(
+        string name, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        // TODO make generic for other providers and verify existence before dropping
+        var sql = new NoResultQuery($@"DROP VIEW {name} ON [{Name}]");
+        using var client = fluentSql.CreateClient(sql);
+        return await client.ExecuteAsync() != 0;
     }
 
     public async IAsyncEnumerable<string> ListSchemasAsync(
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        string sql = $@"
+        var query = new NoResultQuery($@"
             SELECT 
                 SCHEMA_NAME AS Name
             FROM 
-                [{Name}].INFORMATION_SCHEMA.SCHEMATA";
-        using var client = fluentSql.CreateClient(sql);
+                [{Name}].INFORMATION_SCHEMA.SCHEMATA");
+        using var client = fluentSql.CreateClient(query);
         await foreach (var record in client.EnumerateAsync(cancellationToken))
         {
             yield return record.GetString(0);
         }
     }
 
-    public async IAsyncEnumerable<string> ListUdfsAsync(
+    public async IAsyncEnumerable<string> ListFunctionsAsync(
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        string sql = $@"
+        var query = new NoResultQuery($@"
             SELECT 
                 CONCAT(ROUTINE_SCHEMA, '.', ROUTINE_NAME) AS Name
             FROM 
                 [{Name}].INFORMATION_SCHEMA.ROUTINES
             WHERE 
-                ROUTINE_TYPE = 'FUNCTION'";
-        using var client = fluentSql.CreateClient(sql);
+                ROUTINE_TYPE = 'FUNCTION'");
+        using var client = fluentSql.CreateClient(query);
         await foreach (var record in client.EnumerateAsync(cancellationToken))
         {
             yield return record.GetString(0);
@@ -69,14 +87,14 @@ public class FluentDatabaseContext(IFluentSql fluentSql, string databaseName)
     public async IAsyncEnumerable<string> ListStoredProceduresAsync(
        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        string sql = $@"
+        var query = new Query($@"
             SELECT 
                 CONCAT(ROUTINE_SCHEMA, '.', ROUTINE_NAME) AS Name
             FROM 
                 [{Name}].INFORMATION_SCHEMA.ROUTINES
             WHERE 
-                ROUTINE_TYPE = 'PROCEDURE'";
-        using var client = fluentSql.CreateClient(sql);
+                ROUTINE_TYPE = 'PROCEDURE'");
+        using var client = fluentSql.CreateClient(query);
         await foreach (var record in client.EnumerateAsync(cancellationToken))
         {
             yield return record.GetString(0);
@@ -86,14 +104,14 @@ public class FluentDatabaseContext(IFluentSql fluentSql, string databaseName)
     public async IAsyncEnumerable<string> ListTablesAsync(
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        string sql = $@"
+        var query = new Query($@"
             SELECT 
                 CONCAT(TABLE_SCHEMA, '.', TABLE_NAME) AS Name
             FROM 
                 [{Name}].INFORMATION_SCHEMA.TABLES
             WHERE
-                TABLE_TYPE = 'BASE TABLE'";
-        using var client = fluentSql.CreateClient(sql);
+                TABLE_TYPE = 'BASE TABLE'");
+        using var client = fluentSql.CreateClient(query);
         await foreach (var record in client.EnumerateAsync(cancellationToken))
         {
             yield return record.GetString(0);
@@ -103,17 +121,24 @@ public class FluentDatabaseContext(IFluentSql fluentSql, string databaseName)
     public async IAsyncEnumerable<string> ListViewsAsync(
             [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        string sql = $@"
+        var query = new Query($@"
             SELECT 
                 CONCAT(TABLE_SCHEMA, '.', TABLE_NAME) AS Name
             FROM 
-                [{Name}].INFORMATION_SCHEMA.VIEWS";
-        using var client = fluentSql.CreateClient(sql);
+                [{Name}].INFORMATION_SCHEMA.VIEWS");
+        using var client = fluentSql.CreateClient(query);
         await foreach (var record in client.EnumerateAsync(cancellationToken))
         {
             yield return record.GetString(0);
         }
     }
 
-    // Add database operations here (Create, Drop, Exists, ListTables, etc.)
+    public async ValueTask<bool> TruncateTableAsync(
+        string tableName, CancellationToken cancellationToken = default)
+    {
+        // TODO make generic for other providers and verify existence before dropping
+        var sql = new NoResultQuery($@"TRUNCATE TABLE {tableName} ON [{Name}]");
+        using var client = fluentSql.CreateClient(sql);
+        return await client.ExecuteAsync() != 0;
+    }
 }

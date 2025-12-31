@@ -7,30 +7,31 @@ public class FluentSql<TSettings>(ILogger<TSettings> logger, TSettings settings)
     : IFluentSql
     where TSettings : IFluentSqlSettings
 {
-    public IFluentDatabaseContext CurrentDatabase {
+    public IFluentDatabaseContext CurrentDatabase
+    {
         get
         {
             var builder = new SqlConnectionStringBuilder(settings.ConnectionString);
             string databaseName = builder.InitialCatalog;
             return new FluentDatabaseContext(this, databaseName);
-        } 
+        }
     }
 
     public async IAsyncEnumerable<string> ListDatabasesAsync(
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         using var client = CreateClient("SELECT name FROM sys.databases");
-        await foreach(var record in client.EnumerateAsync(cancellationToken))
+        await foreach (var record in client.EnumerateAsync(cancellationToken))
         {
             yield return record.GetString(0);
         }
     }
 
-    public IFluentSqlClient CreateClient(string query)
-        => new FluentSqlClient<TSettings>(logger, settings, query);
+    public ISqlClient CreateClient(IQuery query)
+        => DBClientFactory.Create(logger, settings, query);
 
-    public IFluentSqlClient CreateSPClient(string procedureName)
-        => new FluentSpClient<TSettings>(logger, settings, procedureName);
+    internal ISqlClient CreateClient(string query)
+        => CreateClient(new Query(query));
 
     public IFluentSqlTransaction BeginTransaction()
     {
@@ -63,7 +64,7 @@ public class FluentSql<TSettings>(ILogger<TSettings> logger, TSettings settings)
 
     public IFluentQueryContext Query(string sql) =>
         new FluentQueryContext(this, sql);
-  
+
     public IFluentSelectQueryContext Select(string name) =>
         new FluentQueryContext(this, name);
 
@@ -75,7 +76,7 @@ public class FluentSql<TSettings>(ILogger<TSettings> logger, TSettings settings)
 
     public IFluentUdfContext Udf(string name) =>
         new FluentUdfContext(this, name);
-   
+
     public IFluentUpdateQueryContext Update(string name) =>
         new FluentQueryContext(this, name);
 }

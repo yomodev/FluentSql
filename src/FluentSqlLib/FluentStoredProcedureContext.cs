@@ -1,9 +1,8 @@
-
 namespace FluentSqlLib;
 
 public class FluentStoredProcedureContext(IFluentSql fluentSql, string procedureName) : IFluentStoredProcedureContext
 {
-    internal IFluentSqlClient _client = fluentSql.CreateSPClient(procedureName);
+    internal ISqlClient _client = fluentSql.CreateClient(new StoredProcedureQuery(procedureName));
 
     public IAsyncEnumerable<T> EnumerateAsync<T>(CancellationToken cancellationToken)
         => _client.EnumerateAsync<T>(cancellationToken);
@@ -36,11 +35,20 @@ public class FluentStoredProcedureContext(IFluentSql fluentSql, string procedure
         => _client.GetRequiredAsync<T>(column, cancellationToken);
 
     public ISpParam WithOutputParam<T>(string paramName, T value)
-        => _client.WithOutputParam(paramName, value);
+    {
+        _client.WithOutputParam(paramName, value);
+        return this;
+    }
 
     public ISpParam WithParam<T>(string paramName, T value)
-        => _client.WithParam(paramName, value);
+    {
+        _client.WithParam(paramName, value);
+        return this;
+    }
 
     public ISpParam WithParam<T>(string paramName, IEnumerable<T> tableValued, string tableTypeName)
-        => _client.WithParam(paramName, tableValued, tableTypeName);
+    {
+        _client.WithParam(paramName, tableValued, tableTypeName);
+        return this;
+    }
 }
