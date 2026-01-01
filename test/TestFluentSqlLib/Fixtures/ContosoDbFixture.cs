@@ -1,17 +1,19 @@
-﻿using Microsoft.Data.SqlClient;
+﻿using FluentSqlLib;
+using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.SqlServer.Management.Common;
 using Microsoft.SqlServer.Management.Smo;
 
-namespace TestFluentSqlLib;
+namespace TestFluentSqlLib.Fixtures;
 
-public sealed class ContosoLocalDbFixture : IDisposable
+public sealed class ContosoDbFixture : IDisposable
 {
     public string DatabaseName { get; }
     public string ConnectionString { get; }
     private readonly string _dataFile;
     private readonly string _logFile;
 
-    public ContosoLocalDbFixture()
+    public ContosoDbFixture()
     {
         DatabaseName = "Contoso1M_Test";
         ConnectionString = $"Server=(localdb)\\MSSQLLocalDB;Integrated Security=true;Database={DatabaseName};";
@@ -31,6 +33,17 @@ public sealed class ContosoLocalDbFixture : IDisposable
 
         if (!DatabaseExists())
             RestoreDatabase(localDbInstance, bakFile);
+    }
+
+    public FluentSql<FluentSqlSettings> CreateFluentSql()
+    {
+        var logger = NullLogger<FluentSqlSettings>.Instance;
+        var settings = new FluentSqlSettings
+        {
+            ConnectionString = ConnectionString
+        };
+
+        return new FluentSql<FluentSqlSettings>(logger, settings);
     }
 
     private bool DatabaseExists()

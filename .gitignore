@@ -56,3 +56,4 @@ nunit-*.xml
 #custom
 /.vs
 /test/TestFluentSqlLib/Testdata/Contoso.1M.bak
+/.vscode

@@ -2,7 +2,7 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace TestFluentSqlLib;
+namespace TestFluentSqlLib.Fixtures;
 
 public class LocalDbFixture : IAsyncLifetime
 {
@@ -37,13 +37,15 @@ public class LocalDbFixture : IAsyncLifetime
         await cmd.ExecuteNonQueryAsync();
 
         ConnectionString = $"Server=(localdb)\\MSSQLLocalDB;Database={DatabaseName};Integrated Security=true;TrustServerCertificate=True;";
+        await RunScripts(ConnectionString);
     }
 
-    public static async Task RunScripts(string connectionString, string directory)
+    public static async Task RunScripts(string connectionString)
     {
         using var conn = new SqlConnection(connectionString);
         await conn.OpenAsync();
 
+        var directory = "Testdata";
         var files = Directory.GetFiles(directory, "*.sql").OrderBy(s => s);
         foreach (var file in files)
         {

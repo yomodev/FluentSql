@@ -30,20 +30,16 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Folder Include="Testdata\" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<None Update="Testdata\CreateFunctions.sql">
+		<None Update="Testdata\02-CreateFunctions.sql">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
-		<None Update="Testdata\CreateStoredProcedures.sql">
+		<None Update="Testdata\03-CreateStoredProcedures.sql">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
-		<None Update="Testdata\CreateTables.sql">
+		<None Update="Testdata\01-CreateTables.sql">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
-		<None Update="Testdata\PerformanceBulkInsert.sql">
+		<None Update="Testdata\04-PerformanceBulkInsert.sql">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
 	</ItemGroup>

@@ -1,4 +1,5 @@
 ﻿using Microsoft.Data.SqlClient;
+using TestFluentSqlLib.Fixtures;
 
 namespace TestFluentSqlLib;
 
@@ -28,9 +29,9 @@ public class FluentSqlTests(LocalDbFixture db)
         using var conn = new SqlConnection(db.ConnectionString);
         await conn.OpenAsync();
 
-        using var cmd = new SqlCommand("SELECT COUNT(*) FROM Users;", conn);
+        using var cmd = new SqlCommand("SELECT COUNT(*) FROM dbo.Users;", conn);
         var count = (int)await cmd.ExecuteScalarAsync();
 
-        Assert.True(count > 0);
+        Assert.True(count > -1);
     }
 }

@@ -3,10 +3,10 @@
 -- TABLE CREATION SCRIPT
 -- =====================
 
-IF OBJECT_ID('dbo.Orders', 'U') IS NOT NULL DROP TABLE dbo.Orders;
-IF OBJECT_ID('dbo.Products', 'U') IS NOT NULL DROP TABLE dbo.Products;
-IF OBJECT_ID('dbo.Users', 'U') IS NOT NULL DROP TABLE dbo.Users;
-IF OBJECT_ID('dbo.TestAllTypes', 'U') IS NOT NULL DROP TABLE dbo.TestAllTypes;
+-- IF OBJECT_ID('dbo.Orders', 'U') IS NOT NULL DROP TABLE dbo.Orders;
+-- IF OBJECT_ID('dbo.Products', 'U') IS NOT NULL DROP TABLE dbo.Products;
+-- IF OBJECT_ID('dbo.Users', 'U') IS NOT NULL DROP TABLE dbo.Users;
+-- IF OBJECT_ID('dbo.TestAllTypes', 'U') IS NOT NULL DROP TABLE dbo.TestAllTypes;
 
 CREATE TABLE dbo.Users (
     UserId INT IDENTITY PRIMARY KEY,
