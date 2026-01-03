@@ -7,7 +7,5 @@ public class FluentQueryContext(IFluentSql fluentSql, string sql)
 {
     // Add query operations here (Execute, WithParameter, etc.)
     public ValueTask<int> ExecuteAsync(CancellationToken cancellationToken = default)
-    {
-        throw new NotImplementedException();
-    }
+        => fluentSql.CreateClient(sql).ExecuteAsync(cancellationToken);
 }

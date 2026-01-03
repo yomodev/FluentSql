@@ -1,16 +1,27 @@
+using System.Data.Common;
+
 namespace FluentSqlLib;
 
 public interface ISqlClient : IDisposable
 {
+    DbConnection CreateConnection();
+
+    DbCommand CreateCommand(DbConnection connection);
+
+    DbParameter CreateParameter(DbCommand command, QueryParameter qParam);
+
     IAsyncEnumerable<IDataReader> EnumerateAsync(
         CancellationToken cancellationToken = default);
-   
+
     IAsyncEnumerable<T> EnumerateAsync<T>(
         CancellationToken cancellationToken = default);
 
     IEnumerable<IDataReader> Enumerate();
 
-    ValueTask<int> ExecuteAsync();
+    int Execute();
+    
+    ValueTask<int> ExecuteAsync(
+            CancellationToken cancellationToken = default);
 
     ValueTask<T> GetAsync<T>(
         CancellationToken cancellationToken = default);
@@ -39,6 +50,10 @@ public interface ISqlClient : IDisposable
         T defaultValue,
         CancellationToken cancellationToken = default);
 
+    T GetRequired<T>();
+
+    T GetRequired<T>(string column);
+
     ValueTask<T> GetRequiredAsync<T>(
         CancellationToken cancellationToken = default);
 
@@ -47,15 +62,15 @@ public interface ISqlClient : IDisposable
         CancellationToken cancellationToken = default);
 
     ValueTask<long> InsertManyAsync<T>(
-        IEnumerable<T> rows, 
+        IEnumerable<T> rows,
         CancellationToken cancellationToken = default);
 
-    ISqlParam WithOutputParam<T>(string paramName, T value);
+    ISqlParam WithOutputParam<T>(string name, T value);
 
-    ISqlParam WithParam<T>(string paramName, T value);
+    ISqlParam WithParam<T>(string name, T value);
 
     ISqlParam WithParam<T>(
-        string paramName,
+        string name,
         IEnumerable<T> tableValued,
         string tableTypeName);
 }

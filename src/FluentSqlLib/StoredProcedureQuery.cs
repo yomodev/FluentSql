@@ -1,6 +1,5 @@
 ﻿namespace FluentSqlLib;
 
-internal class StoredProcedureQuery(string procedureName) : IQuery
+internal class StoredProcedureQuery(string procedureName) : Query(procedureName)
 {
-    public override string ToString() => $"EXEC {procedureName}";
 }

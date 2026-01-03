@@ -13,7 +13,7 @@ public class FluentDatabaseContext(IFluentSql fluentSql, string databaseName)
         // TODO make generic for other providers and verify existence before dropping
         var sql = new NoResultQuery($@"DROP INDEX {indexName} ON [{Name}]");
         using var client = fluentSql.CreateClient(sql);
-        return await client.ExecuteAsync() != 0;
+        return await client.ExecuteAsync(cancellationToken) != 0;
     }
 
     public async ValueTask<bool> DropStoredProcedureAsync(
@@ -22,7 +22,7 @@ public class FluentDatabaseContext(IFluentSql fluentSql, string databaseName)
         // TODO make generic for other providers and verify existence before dropping
         var sql = new NoResultQuery($@"DROP PROCEDURE {procedureName} ON [{Name}]");
         using var client = fluentSql.CreateClient(sql);
-        return await client.ExecuteAsync() != 0;
+        return await client.ExecuteAsync(cancellationToken) != 0;
     }
 
     public async ValueTask<bool> DropTableAsync(
@@ -31,7 +31,7 @@ public class FluentDatabaseContext(IFluentSql fluentSql, string databaseName)
         // TODO make generic for other providers and verify existence before dropping
         var sql = new NoResultQuery($@"DROP TABLE {tableName} ON [{Name}]");
         using var client = fluentSql.CreateClient(sql);
-        return await client.ExecuteAsync() != 0;
+        return await client.ExecuteAsync(cancellationToken) != 0;
     }
 
     public async ValueTask<bool> DropFunctionAsync(
@@ -40,7 +40,7 @@ public class FluentDatabaseContext(IFluentSql fluentSql, string databaseName)
         // TODO make generic for other providers and verify existence before dropping
         var sql = new NoResultQuery($@"DROP FUNCTION {functionName} ON [{Name}]");
         using var client = fluentSql.CreateClient(sql);
-        return await client.ExecuteAsync() != 0;
+        return await client.ExecuteAsync(cancellationToken) != 0;
     }
 
     public async ValueTask<bool> DropViewAsync(
@@ -49,7 +49,7 @@ public class FluentDatabaseContext(IFluentSql fluentSql, string databaseName)
         // TODO make generic for other providers and verify existence before dropping
         var sql = new NoResultQuery($@"DROP VIEW {name} ON [{Name}]");
         using var client = fluentSql.CreateClient(sql);
-        return await client.ExecuteAsync() != 0;
+        return await client.ExecuteAsync(cancellationToken) != 0;
     }
 
     public async IAsyncEnumerable<string> ListSchemasAsync(
@@ -139,6 +139,6 @@ public class FluentDatabaseContext(IFluentSql fluentSql, string databaseName)
         // TODO make generic for other providers and verify existence before dropping
         var sql = new NoResultQuery($@"TRUNCATE TABLE {tableName} ON [{Name}]");
         using var client = fluentSql.CreateClient(sql);
-        return await client.ExecuteAsync() != 0;
+        return await client.ExecuteAsync(cancellationToken) != 0;
     }
 }

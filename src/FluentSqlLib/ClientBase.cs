@@ -4,27 +4,55 @@ using System.Runtime.CompilerServices;
 
 namespace FluentSqlLib;
 
-public class ClientBase<TSettings>(
+public abstract class ClientBase<TSettings>(
     ILogger<TSettings> logger,
     TSettings settings,
     IQuery query)
-    : ISqlClient
+    : ISqlClient, ISqlParam
     where TSettings : IFluentSqlSettings
 {
     private bool _disposed;
     protected readonly ILogger<TSettings> logger = logger;
     protected readonly TSettings settings = settings;
     protected readonly IQuery query = query;
+    protected readonly List<QueryParameter> parameters = [];
 
-    internal virtual DbConnection? Connection { get; set; }
-    
-    internal virtual DbCommand? Command { get; set; }
-    
+    public abstract DbConnection CreateConnection();
+
+    public virtual DbCommand CreateCommand(DbConnection connection)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+        var command = connection.CreateCommand();
+        parameters.ForEach(param => command.Parameters.Add(CreateParameter(command, param)));
+        command.CommandTimeout = (int)settings.CommandTimeout.TotalSeconds;
+        command.CommandText = query.ToString();
+            command.CommandType = query is IStoredProcedureQuery 
+                ? CommandType.StoredProcedure
+                : CommandType.Text;
+        return command;
+    }
+
+    public virtual DbParameter CreateParameter(DbCommand command, QueryParameter qParam)
+    {
+        var dbParam = command.CreateParameter();
+        dbParam.ParameterName = qParam.Name;
+        dbParam.Value = qParam.Value ?? DBNull.Value;
+        dbParam.Direction = qParam.IsOutput 
+            ? ParameterDirection.Output 
+            : ParameterDirection.Input;
+        dbParam.DbType = qParam.DbType;
+        dbParam.Size = qParam.Size ?? dbParam.Size;
+        dbParam.Scale = qParam.Scale ?? dbParam.Scale;
+        dbParam.Precision = qParam.Precision ?? dbParam.Precision;
+        return dbParam;
+    }
+
     public virtual IEnumerable<IDataReader> Enumerate()
     {
-        Connect();
-        var behaviour = CommandBehavior.CloseConnection;
-        using var reader = Command!.ExecuteReader(behaviour);
+        var behavior = CommandBehavior.CloseConnection;
+        using var connection = Connect();
+        using var command = CreateCommand(connection);
+        using var reader = command!.ExecuteReader(behavior);
         while (reader.Read())
         {
             yield return reader;
@@ -39,7 +67,9 @@ public class ClientBase<TSettings>(
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         await ConnectAsync(cancellationToken);
-        using var reader = await Command!.ExecuteReaderAsync(behavior, cancellationToken);
+        using var connection = await ConnectAsync(cancellationToken);
+        using var command = CreateCommand(connection);
+        using var reader = await command.ExecuteReaderAsync(behavior, cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
         {
             yield return reader;
@@ -60,12 +90,28 @@ public class ClientBase<TSettings>(
         throw new NotImplementedException();
     }
 
-    public virtual ValueTask<int> ExecuteAsync()
+    // return the number of rows affected
+    public virtual int Execute()
     {
-        throw new NotImplementedException();
+        using var connection = Connect();
+        using var command = CreateCommand(connection);
+        var result = command.ExecuteNonQuery();
+        connection.Close();
+        return result;
     }
 
-    public virtual ValueTask<T> GetAsync<T>(CancellationToken cancellationToken = default)
+    // return the number of rows affected
+    public virtual async ValueTask<int> ExecuteAsync(CancellationToken cancellationToken = default)
+    {
+        await ConnectAsync(cancellationToken);
+        using var connection = await ConnectAsync(cancellationToken);
+        using var command = CreateCommand(connection);
+        var result = await command.ExecuteNonQueryAsync(cancellationToken);
+        connection.Close();
+        return result;
+    }
+
+    public virtual async ValueTask<T> GetAsync<T>(CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }
@@ -100,6 +146,16 @@ public class ClientBase<TSettings>(
         throw new NotImplementedException();
     }
 
+    public T GetRequired<T>()
+    {
+        throw new NotImplementedException();
+    }
+
+    public T GetRequired<T>(string column)
+    {
+        throw new NotImplementedException();
+    }
+
     public virtual ValueTask<T> GetRequiredAsync<T>(CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
@@ -115,45 +171,27 @@ public class ClientBase<TSettings>(
         throw new NotImplementedException();
     }
 
-    public virtual ISqlParam WithOutputParam<T>(string paramName, T value)
+    public virtual ISqlParam WithOutputParam<T>(string name, T value)
     {
         throw new NotImplementedException();
     }
 
-    public virtual ISqlParam WithParam<T>(string paramName, T value)
+    public virtual ISqlParam WithParam<T>(string name, T value)
     {
-        throw new NotImplementedException();
+        parameters.Add(new QueryParameter<T>(name, value));
+        return this;
     }
 
-    public virtual ISqlParam WithParam<T>(string paramName, IEnumerable<T> tableValued, string tableTypeName)
+    public virtual ISqlParam WithParam<T>(string name, IEnumerable<T> tableValued, string tableTypeName)
     {
-        throw new NotImplementedException();
-    }
+        parameters.Add(new QueryParameter<T>
+        (
+            name,
+            tableValued,
+            tableTypeName
+        ));
 
-    internal virtual DbConnection Connect()
-    {
-        ArgumentNullException.ThrowIfNull(Connection);
-        if (Connection.State != ConnectionState.Open)
-        {
-            Connection.Open();
-        }
-
-        Command = Connection.CreateCommand();
-        Command.CommandText = query.ToString();
-        return Connection;
-    }
-
-    internal virtual async ValueTask<DbConnection> ConnectAsync(CancellationToken cancellation)
-    {
-        ArgumentNullException.ThrowIfNull(Connection);
-        if (Connection.State != ConnectionState.Open)
-        {
-            await Connection.OpenAsync(cancellation);
-        }
-
-        Command = Connection.CreateCommand();
-        Command.CommandText = query.ToString();
-        return Connection;
+        return this;
     }
 
     public void Dispose()
@@ -171,9 +209,33 @@ public class ClientBase<TSettings>(
 
         if (disposing)
         {
+            parameters.Clear();
+            parameters.TrimExcess();
             //_connection?.Dispose();
         }
 
         _disposed = true;
+    }
+
+    protected virtual DbConnection Connect()
+    {
+        var connection = CreateConnection();
+        if (connection.State != ConnectionState.Open)
+        {
+            connection.Open();
+        }
+
+        return connection;
+    }
+
+    protected virtual async ValueTask<DbConnection> ConnectAsync(CancellationToken cancellation)
+    {
+        var connection = CreateConnection();
+        if (connection.State != ConnectionState.Open)
+        {
+            await connection.OpenAsync(cancellation);
+        }
+
+        return connection;
     }
 }

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using System.Data.Common;
+using System.Diagnostics;
 
 namespace FluentSqlLib;
 
@@ -10,16 +11,7 @@ public class SqlServerClient<TSettings>(
     : ClientBase<TSettings>(_logger, _settings, query)
     where TSettings : IFluentSqlSettings
 {
-    private SqlConnection? _connection;
-
-    internal override DbConnection? Connection
-    {
-        get => _connection ??= CreateConnection();
-    }
-
-    // TODO
-
-    private SqlConnection CreateConnection()
+    public override DbConnection CreateConnection()
     {
         var connection = new SqlConnection(settings.ConnectionString);
         if (logger.IsEnabled(LogLevel.Trace))
@@ -34,6 +26,36 @@ public class SqlServerClient<TSettings>(
             };
         }
         return connection;
+    }
+
+    public override DbParameter CreateParameter(DbCommand command, QueryParameter qParam)
+    {
+        var sqlParam = base.CreateParameter(command, qParam) as SqlParameter;
+        Debug.Assert(sqlParam is not null);
+        if (qParam.TableTypeName.Length > 0)
+        {
+            // TODO
+            /*static IEnumerable<SqlDataRecord> CreateRecords(IEnumerable<int> ids)
+            {
+                var meta = new[]
+                {
+                    new SqlMetaData("Id", SqlDbType.Int)
+                };
+
+                foreach (var id in ids)
+                {
+                    var record = new SqlDataRecord(meta);
+                    record.SetInt32(0, id);
+                    yield return record;
+                }
+            }
+
+            sqlParam.Value = CreateRecords(qParam.Value as IEnumerable)
+            */
+            sqlParam.SqlDbType = SqlDbType.Structured;
+            sqlParam.TypeName = qParam.TableTypeName;
+        }
+        return sqlParam;
     }
 
     private void LogConnectionState(object sender, StateChangeEventArgs args)

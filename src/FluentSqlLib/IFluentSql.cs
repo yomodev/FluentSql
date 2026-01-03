@@ -8,6 +8,8 @@ public interface IFluentSql
 
     ISqlClient CreateClient(IQuery query);
 
+    ISqlClient CreateClient(string query);
+
     IFluentDatabaseContext Database(string name);
 
     IFluentDeleteQueryContext Delete(string name);
@@ -26,7 +28,7 @@ public interface IFluentSql
     
     IFluentTableContext Table(string name);
    
-    IFluentUdfContext Udf(string name);
+    IFluentFunctionContext Function(string name);
 
     IFluentUpdateQueryContext Update(string name);
 }

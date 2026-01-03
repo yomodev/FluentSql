@@ -6,6 +6,9 @@ using Microsoft.SqlServer.Management.Smo;
 
 namespace TestFluentSqlLib.Fixtures;
 
+// download from
+// https://github.com/sql-bi/Contoso-Data-Generator/releases/tag/v1.0.0
+// https://red9.com/blog/sample-sql-databases/
 public sealed class ContosoDbFixture : IDisposable
 {
     public string DatabaseName { get; }

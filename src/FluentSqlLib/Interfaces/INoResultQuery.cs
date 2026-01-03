@@ -1,4 +1,4 @@
-﻿namespace FluentSqlLib;
+﻿namespace FluentSqlLib.Interfaces;
 
 public interface INoResultQuery : IQuery
 {

@@ -1,6 +1,7 @@
-﻿namespace FluentSqlLib;
+﻿using FluentSqlLib.Interfaces;
 
-internal class NoResultQuery(string sql) : IQuery
+namespace FluentSqlLib;
+
+internal class NoResultQuery(string sql) : Query(sql), INoResultQuery
 {
-    public override string ToString() => sql;
 }
