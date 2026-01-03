@@ -8,11 +8,11 @@ public interface IFluentStoredProcedureContext: ISpParam
 
 public interface ISpParam : ISpNoParam
 {
-    ISpParam WithParam<T>(string paramName, T value);
+    ISpParam WithParam<T>(string name, T value);
     
-    ISpParam WithParam<T>(string paramName, IEnumerable<T> tableValued, string tableTypeName);
+    ISpParam WithParam<T>(string name, IEnumerable<T> tableValued, string tableTypeName);
 
-    ISpParam WithOutputParam<T>(string paramName, T value);
+    ISpParam WithOutputParam<T>(string name, T value);
 }
 
 public interface ISpNoParam : ISingleRowResult, IMultipleRowsResult, IMultipleResults

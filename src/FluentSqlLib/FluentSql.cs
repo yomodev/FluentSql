@@ -30,7 +30,7 @@ public class FluentSql<TSettings>(ILogger<TSettings> logger, TSettings settings)
     public ISqlClient CreateClient(IQuery query)
         => DBClientFactory.Create(logger, settings, query);
 
-    internal ISqlClient CreateClient(string query)
+    public ISqlClient CreateClient(string query)
         => CreateClient(new Query(query));
 
     public IFluentSqlTransaction BeginTransaction()
@@ -74,8 +74,8 @@ public class FluentSql<TSettings>(ILogger<TSettings> logger, TSettings settings)
     public IFluentTableContext Table(string name) =>
         new FluentTableContext(this, name);
 
-    public IFluentUdfContext Udf(string name) =>
-        new FluentUdfContext(this, name);
+    public IFluentFunctionContext Function(string name) =>
+        new FluentFunctionContext(this, name);
 
     public IFluentUpdateQueryContext Update(string name) =>
         new FluentQueryContext(this, name);

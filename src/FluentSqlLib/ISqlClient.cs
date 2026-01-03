@@ -39,6 +39,10 @@ public interface ISqlClient : IDisposable
         T defaultValue,
         CancellationToken cancellationToken = default);
 
+    T GetRequired<T>();
+
+    T GetRequired<T>(string column);
+
     ValueTask<T> GetRequiredAsync<T>(
         CancellationToken cancellationToken = default);
 
@@ -50,12 +54,12 @@ public interface ISqlClient : IDisposable
         IEnumerable<T> rows, 
         CancellationToken cancellationToken = default);
 
-    ISqlParam WithOutputParam<T>(string paramName, T value);
+    ISqlParam WithOutputParam<T>(string name, T value);
 
-    ISqlParam WithParam<T>(string paramName, T value);
+    ISqlParam WithParam<T>(string name, T value);
 
     ISqlParam WithParam<T>(
-        string paramName,
+        string name,
         IEnumerable<T> tableValued,
         string tableTypeName);
 }

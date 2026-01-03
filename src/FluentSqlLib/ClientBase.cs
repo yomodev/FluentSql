@@ -8,18 +8,19 @@ public class ClientBase<TSettings>(
     ILogger<TSettings> logger,
     TSettings settings,
     IQuery query)
-    : ISqlClient
+    : ISqlClient, ISqlParam
     where TSettings : IFluentSqlSettings
 {
     private bool _disposed;
     protected readonly ILogger<TSettings> logger = logger;
     protected readonly TSettings settings = settings;
     protected readonly IQuery query = query;
+    protected readonly List<QueryParameter> parameters = [];
 
     internal virtual DbConnection? Connection { get; set; }
-    
+
     internal virtual DbCommand? Command { get; set; }
-    
+
     public virtual IEnumerable<IDataReader> Enumerate()
     {
         Connect();
@@ -100,6 +101,16 @@ public class ClientBase<TSettings>(
         throw new NotImplementedException();
     }
 
+    public T GetRequired<T>()
+    {
+        throw new NotImplementedException();
+    }
+
+    public T GetRequired<T>(string column)
+    {
+        throw new NotImplementedException();
+    }
+
     public virtual ValueTask<T> GetRequiredAsync<T>(CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
@@ -115,19 +126,27 @@ public class ClientBase<TSettings>(
         throw new NotImplementedException();
     }
 
-    public virtual ISqlParam WithOutputParam<T>(string paramName, T value)
+    public virtual ISqlParam WithOutputParam<T>(string name, T value)
     {
         throw new NotImplementedException();
     }
 
-    public virtual ISqlParam WithParam<T>(string paramName, T value)
+    public virtual ISqlParam WithParam<T>(string name, T value)
     {
-        throw new NotImplementedException();
+        parameters.Add(new QueryParameter<T>(name, value));
+        return this;
     }
 
-    public virtual ISqlParam WithParam<T>(string paramName, IEnumerable<T> tableValued, string tableTypeName)
+    public virtual ISqlParam WithParam<T>(string name, IEnumerable<T> tableValued, string tableTypeName)
     {
-        throw new NotImplementedException();
+        parameters.Add(new QueryParameter<T>
+        (
+            name,
+            tableValued,
+            tableTypeName
+        ));
+
+        return this;
     }
 
     internal virtual DbConnection Connect()
@@ -171,6 +190,8 @@ public class ClientBase<TSettings>(
 
         if (disposing)
         {
+            parameters.Clear();
+            parameters.TrimExcess();
             //_connection?.Dispose();
         }
 

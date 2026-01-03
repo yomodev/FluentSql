@@ -34,21 +34,21 @@ public class FluentStoredProcedureContext(IFluentSql fluentSql, string procedure
     public ValueTask<T> GetRequiredAsync<T>(string column, CancellationToken cancellationToken = default)
         => _client.GetRequiredAsync<T>(column, cancellationToken);
 
-    public ISpParam WithOutputParam<T>(string paramName, T value)
+    public ISpParam WithOutputParam<T>(string name, T value)
     {
-        _client.WithOutputParam(paramName, value);
+        _client.WithOutputParam(name, value);
         return this;
     }
 
-    public ISpParam WithParam<T>(string paramName, T value)
+    public ISpParam WithParam<T>(string name, T value)
     {
-        _client.WithParam(paramName, value);
+        _client.WithParam(name, value);
         return this;
     }
 
-    public ISpParam WithParam<T>(string paramName, IEnumerable<T> tableValued, string tableTypeName)
+    public ISpParam WithParam<T>(string name, IEnumerable<T> tableValued, string tableTypeName)
     {
-        _client.WithParam(paramName, tableValued, tableTypeName);
+        _client.WithParam(name, tableValued, tableTypeName);
         return this;
     }
 }
