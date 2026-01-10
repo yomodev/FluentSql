@@ -1,5 +1,4 @@
-﻿using FluentSqlLib.Interfaces;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 
 namespace FluentSqlLib;
 
@@ -10,6 +9,14 @@ public class QueryParameter<T> : QueryParameter, IGenericQueryParameter
     {
         Name = name;
         Value = value;
+    }
+
+    [SetsRequiredMembers]
+    public QueryParameter(string name, DbType outputType)
+    {
+        Name = name;
+        DbType = outputType;
+        Direction = ParameterDirection.Output;
     }
 
     [SetsRequiredMembers]
@@ -34,7 +41,7 @@ public class QueryParameter
 {
     public DbType DbType { get; set; }
     
-    public bool IsOutput { get; set; } = false;
+    public ParameterDirection Direction { get; set; } = ParameterDirection.Input;
     
     public required string Name { get; set; }
     

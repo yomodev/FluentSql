@@ -1,6 +1,4 @@
-﻿using FluentSqlLib.Interfaces;
-
-namespace FluentSqlLib;
+﻿namespace FluentSqlLib;
 
 public interface IFluentStoredProcedureContext: ISpParam
 {

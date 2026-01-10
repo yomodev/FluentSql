@@ -1,5 +1,6 @@
 ﻿namespace FluentSqlLib;
 
-internal class StoredProcedureQuery(string procedureName) : Query(procedureName)
+internal class StoredProcedureQuery(string procedureName) 
+    : Query(procedureName), IStoredProcedureQuery
 {
 }

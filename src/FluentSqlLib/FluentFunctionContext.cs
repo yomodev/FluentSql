@@ -5,7 +5,7 @@ public class FluentFunctionContext(
     IFluentSql fluentSql, string functionName)
     : IFluentFunctionContext
 {
-    private readonly ISqlClient client = fluentSql.CreateClient(functionName);
+    private readonly ISqlClient client = fluentSql.CreateClient(new FunctionQuery(functionName));
 
     public IAsyncEnumerable<T> EnumerateAsync<T>(
         CancellationToken cancellationToken)

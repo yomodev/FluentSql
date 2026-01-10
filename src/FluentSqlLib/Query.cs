@@ -2,5 +2,5 @@
 
 internal class Query(string query) : IQuery
 {
-    public override string ToString()=> query;
+    public virtual string GetText(IReadOnlyList<QueryParameter> parameters) => query;
 }

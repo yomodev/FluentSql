@@ -16,4 +16,8 @@
 	<Using Include="System.Threading" />  
 </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Interfaces\" />
+  </ItemGroup>
+
 </Project>

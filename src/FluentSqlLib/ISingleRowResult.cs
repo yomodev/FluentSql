@@ -1,4 +1,4 @@
-﻿namespace FluentSqlLib.Interfaces;
+﻿namespace FluentSqlLib;
 
 public interface ISingleRowResult
 {

@@ -1,4 +1,4 @@
-﻿namespace FluentSqlLib.Interfaces;
+﻿namespace FluentSqlLib;
 
 internal interface IGenericQueryParameter
 {

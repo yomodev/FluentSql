@@ -1,16 +1,14 @@
-﻿using FluentSqlLib.Interfaces;
-
-namespace FluentSqlLib;
+﻿namespace FluentSqlLib;
 
 public interface IFluentFunctionContext : IFunctionInputParam
 {
 }
 
-public interface IFunctionInputParam : IFunctinNoParam
+public interface IFunctionInputParam : IFunctionNoParam
 {
     IFunctionInputParam WithParam<T>(string name, T value);
 }
 
-public interface IFunctinNoParam : ISingleRowResult, IMultipleRowsResult
+public interface IFunctionNoParam : ISingleRowResult, IMultipleRowsResult
 {
 }

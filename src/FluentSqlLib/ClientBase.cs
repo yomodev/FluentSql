@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using System.Data;
 using System.Data.Common;
 using System.Runtime.CompilerServices;
 
@@ -25,21 +26,19 @@ public abstract class ClientBase<TSettings>(
         var command = connection.CreateCommand();
         parameters.ForEach(param => command.Parameters.Add(CreateParameter(command, param)));
         command.CommandTimeout = (int)settings.CommandTimeout.TotalSeconds;
-        command.CommandText = query.ToString();
-            command.CommandType = query is IStoredProcedureQuery 
-                ? CommandType.StoredProcedure
-                : CommandType.Text;
+        command.CommandText = query.GetText(parameters);
+        command.CommandType = query is IStoredProcedureQuery
+            ? CommandType.StoredProcedure
+            : CommandType.Text;
         return command;
     }
 
     public virtual DbParameter CreateParameter(DbCommand command, QueryParameter qParam)
     {
         var dbParam = command.CreateParameter();
-        dbParam.ParameterName = qParam.Name;
+        dbParam.ParameterName = $"@{qParam.Name.TrimStart('@')}";
         dbParam.Value = qParam.Value ?? DBNull.Value;
-        dbParam.Direction = qParam.IsOutput 
-            ? ParameterDirection.Output 
-            : ParameterDirection.Input;
+        dbParam.Direction = qParam.Direction;
         dbParam.DbType = qParam.DbType;
         dbParam.Size = qParam.Size ?? dbParam.Size;
         dbParam.Scale = qParam.Scale ?? dbParam.Scale;
@@ -66,7 +65,6 @@ public abstract class ClientBase<TSettings>(
         CommandBehavior behavior,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        await ConnectAsync(cancellationToken);
         using var connection = await ConnectAsync(cancellationToken);
         using var command = CreateCommand(connection);
         using var reader = await command.ExecuteReaderAsync(behavior, cancellationToken);
@@ -103,7 +101,6 @@ public abstract class ClientBase<TSettings>(
     // return the number of rows affected
     public virtual async ValueTask<int> ExecuteAsync(CancellationToken cancellationToken = default)
     {
-        await ConnectAsync(cancellationToken);
         using var connection = await ConnectAsync(cancellationToken);
         using var command = CreateCommand(connection);
         var result = await command.ExecuteNonQueryAsync(cancellationToken);
@@ -113,7 +110,32 @@ public abstract class ClientBase<TSettings>(
 
     public virtual async ValueTask<T> GetAsync<T>(CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        using var connection = await ConnectAsync(cancellationToken);
+        using var command = CreateCommand(connection);
+
+        if (query is IStoredProcedureQuery)
+        {
+            if (typeof(T) != typeof(Int32))
+            {
+                throw new InvalidOperationException("Return type for stored procedure must be Int32 when calling GetAsync without column parameter.");
+            }
+
+            var param = new QueryParameter<int>("@ReturnValue", DbType.Int32)
+            { Direction = ParameterDirection.ReturnValue };
+            parameters.Add(param);
+            await command.ExecuteNonQueryAsync(cancellationToken);
+            connection.Close();
+            return (T)param.Value!;
+        }
+        else if (query is IFunctionQuery function)
+        {
+            command.CommandText = function.GetScalarFunctionText(parameters);
+            var result = await command.ExecuteScalarAsync(cancellationToken);
+            connection.Close();
+            return MapScalar<T>(result);
+        }
+
+        throw new NotSupportedException("GetAsync without column parameter is only supported for stored procedures and functions.");
     }
 
     public virtual ValueTask<T?> GetAsync<T>(string column, CancellationToken cancellationToken = default)
@@ -237,5 +259,21 @@ public abstract class ClientBase<TSettings>(
         }
 
         return connection;
+    }
+
+    protected T MapScalar<T>(object? scalar)
+    {
+        T result = default!;
+        if (scalar is null || scalar == DBNull.Value)
+        {
+            if (typeof(T).IsValueType && Nullable.GetUnderlyingType(typeof(T)) is null)
+            {
+                throw new InvalidOperationException($"Cannot convert null to non-nullable type {typeof(T).FullName}.");
+            }
+
+            return result;
+        }
+
+        return (T)Convert.ChangeType(scalar, typeof(T));
     }
 }
