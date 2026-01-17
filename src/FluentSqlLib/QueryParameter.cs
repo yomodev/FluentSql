@@ -12,6 +12,14 @@ public class QueryParameter<T> : QueryParameter, IGenericQueryParameter
     }
 
     [SetsRequiredMembers]
+    public QueryParameter(string name)
+    {
+        Name = name;
+        DbType = Mapper.GetDbType<T>();
+        Direction = ParameterDirection.Output;
+    }
+
+    [SetsRequiredMembers]
     public QueryParameter(string name, DbType outputType)
     {
         Name = name;

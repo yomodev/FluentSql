@@ -10,7 +10,7 @@ public interface ISpParam : ISpNoParam
     
     ISpParam WithParam<T>(string name, IEnumerable<T> tableValued, string tableTypeName);
 
-    ISpParam WithOutputParam<T>(string name, T value);
+    ISpParam WithOutputParam<T>(string name);
 }
 
 public interface ISpNoParam : ISingleRowResult, IMultipleRowsResult, IMultipleResults

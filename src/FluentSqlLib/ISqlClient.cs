@@ -65,7 +65,7 @@ public interface ISqlClient : IDisposable
         IEnumerable<T> rows,
         CancellationToken cancellationToken = default);
 
-    ISqlParam WithOutputParam<T>(string name, T value);
+    ISqlParam WithOutputParam<T>(string name);
 
     ISqlParam WithParam<T>(string name, T value);
 

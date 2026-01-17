@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging;
-using System.Data;
 using System.Data.Common;
 using System.Runtime.CompilerServices;
 
@@ -17,6 +16,7 @@ public abstract class ClientBase<TSettings>(
     protected readonly TSettings settings = settings;
     protected readonly IQuery query = query;
     protected readonly List<QueryParameter> parameters = [];
+    protected Dictionary<string, object?> outputDict = new(StringComparer.InvariantCultureIgnoreCase);
 
     public abstract DbConnection CreateConnection();
 
@@ -52,6 +52,7 @@ public abstract class ClientBase<TSettings>(
         using var connection = Connect();
         using var command = CreateCommand(connection);
         using var reader = command!.ExecuteReader(behavior);
+            TryPrepareStoredProcedureOutput();
         while (reader.Read())
         {
             yield return reader;
@@ -68,6 +69,7 @@ public abstract class ClientBase<TSettings>(
         using var connection = await ConnectAsync(cancellationToken);
         using var command = CreateCommand(connection);
         using var reader = await command.ExecuteReaderAsync(behavior, cancellationToken);
+            TryPrepareStoredProcedureOutput();
         while (await reader.ReadAsync(cancellationToken))
         {
             yield return reader;
@@ -94,6 +96,7 @@ public abstract class ClientBase<TSettings>(
         using var connection = Connect();
         using var command = CreateCommand(connection);
         var result = command.ExecuteNonQuery();
+            TryPrepareStoredProcedureOutput();
         connection.Close();
         return result;
     }
@@ -104,6 +107,7 @@ public abstract class ClientBase<TSettings>(
         using var connection = await ConnectAsync(cancellationToken);
         using var command = CreateCommand(connection);
         var result = await command.ExecuteNonQueryAsync(cancellationToken);
+            TryPrepareStoredProcedureOutput();
         connection.Close();
         return result;
     }
@@ -124,6 +128,7 @@ public abstract class ClientBase<TSettings>(
             { Direction = ParameterDirection.ReturnValue };
             parameters.Add(param);
             await command.ExecuteNonQueryAsync(cancellationToken);
+            TryPrepareStoredProcedureOutput();
             connection.Close();
             return (T)param.Value!;
         }
@@ -132,40 +137,69 @@ public abstract class ClientBase<TSettings>(
             command.CommandText = function.GetScalarFunctionText(parameters);
             var result = await command.ExecuteScalarAsync(cancellationToken);
             connection.Close();
-            return MapScalar<T>(result);
+            return Mapper.MapScalar<T>(result);
         }
 
         throw new NotSupportedException("GetAsync without column parameter is only supported for stored procedures and functions.");
     }
 
-    public virtual ValueTask<T?> GetAsync<T>(string column, CancellationToken cancellationToken = default)
+    public virtual ValueTask<T?> GetAsync<T>(
+        string column, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }
 
-    public virtual ValueTask<T> GetAsync<T>(string column, T defaultValue, CancellationToken cancellationToken = default)
+    public virtual ValueTask<T> GetAsync<T>(
+        string column, T defaultValue, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }
 
-    public virtual ValueTask<IReadOnlyDictionary<string, object?>> GetOutputAsync(CancellationToken cancellationToken = default)
+    public virtual async ValueTask<IReadOnlyDictionary<string, object?>> GetOutputAsync(
+        CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        await TryExecuteStoredProcedureWithOutputAsync(cancellationToken);
+
+        return outputDict.ToDictionary();
     }
 
-    public virtual ValueTask<T> GetOutputAsync<T>(CancellationToken cancellationToken = default)
+    public virtual async ValueTask<T> GetOutputAsync<T>(CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        await TryExecuteStoredProcedureWithOutputAsync(cancellationToken);
+
+        if (outputDict.Count > 0)
+        {
+            var value = outputDict.Values.First();
+            return Mapper.MapScalar<T>(value);
+        }
+
+        throw new InvalidOperationException("No output found.");
     }
 
-    public virtual ValueTask<T?> GetOutputAsync<T>(string column, CancellationToken cancellationToken = default)
+    public virtual async ValueTask<T?> GetOutputAsync<T>(
+        string column, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        await TryExecuteStoredProcedureWithOutputAsync(cancellationToken);
+
+        if (outputDict.TryGetValue(column, out var value))
+        {
+            return Mapper.MapScalar<T>(value);
+        }
+
+        throw new InvalidOperationException("No output found.");
     }
 
-    public virtual ValueTask<T> GetOutputAsync<T>(string column, T defaultValue, CancellationToken cancellationToken = default)
+    public virtual async ValueTask<T> GetOutputAsync<T>(
+        string column, T defaultValue, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        await TryExecuteStoredProcedureWithOutputAsync(cancellationToken);
+
+        if (outputDict.TryGetValue(column, out var value))
+        {
+            return Mapper.MapScalar<T>(value);
+        }
+
+        return defaultValue;
     }
 
     public T GetRequired<T>()
@@ -183,19 +217,22 @@ public abstract class ClientBase<TSettings>(
         throw new NotImplementedException();
     }
 
-    public virtual ValueTask<T> GetRequiredAsync<T>(string column, CancellationToken cancellationToken = default)
+    public virtual ValueTask<T> GetRequiredAsync<T>(
+        string column, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }
 
-    public virtual ValueTask<long> InsertManyAsync<T>(IEnumerable<T> rows, CancellationToken cancellationToken = default)
+    public virtual ValueTask<long> InsertManyAsync<T>(
+        IEnumerable<T> rows, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }
 
-    public virtual ISqlParam WithOutputParam<T>(string name, T value)
+    public virtual ISqlParam WithOutputParam<T>(string name)
     {
-        throw new NotImplementedException();
+        parameters.Add(new QueryParameter<T>(name));
+        return this;
     }
 
     public virtual ISqlParam WithParam<T>(string name, T value)
@@ -204,7 +241,8 @@ public abstract class ClientBase<TSettings>(
         return this;
     }
 
-    public virtual ISqlParam WithParam<T>(string name, IEnumerable<T> tableValued, string tableTypeName)
+    public virtual ISqlParam WithParam<T>(
+        string name, IEnumerable<T> tableValued, string tableTypeName)
     {
         parameters.Add(new QueryParameter<T>
         (
@@ -261,19 +299,21 @@ public abstract class ClientBase<TSettings>(
         return connection;
     }
 
-    protected T MapScalar<T>(object? scalar)
+    protected async ValueTask TryExecuteStoredProcedureWithOutputAsync(CancellationToken cancellationToken)
     {
-        T result = default!;
-        if (scalar is null || scalar == DBNull.Value)
+        if (outputDict.Count == 0)
         {
-            if (typeof(T).IsValueType && Nullable.GetUnderlyingType(typeof(T)) is null)
-            {
-                throw new InvalidOperationException($"Cannot convert null to non-nullable type {typeof(T).FullName}.");
-            }
-
-            return result;
+            await GetAsync<int>(cancellationToken);
         }
-
-        return (T)Convert.ChangeType(scalar, typeof(T));
     }
+
+    protected void TryPrepareStoredProcedureOutput()
+    {
+        foreach (var param in parameters
+            .Where(p => p.Direction is ParameterDirection.Output or ParameterDirection.InputOutput or ParameterDirection.ReturnValue))
+        {
+            outputDict[param.Name.TrimStart('@')] = param.Value;
+        }
+    }
+
 }

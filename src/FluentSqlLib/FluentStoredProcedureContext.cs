@@ -34,9 +34,9 @@ public class FluentStoredProcedureContext(IFluentSql fluentSql, string procedure
     public ValueTask<T> GetRequiredAsync<T>(string column, CancellationToken cancellationToken = default)
         => _client.GetRequiredAsync<T>(column, cancellationToken);
 
-    public ISpParam WithOutputParam<T>(string name, T value)
+    public ISpParam WithOutputParam<T>(string name)
     {
-        _client.WithOutputParam(name, value);
+        _client.WithOutputParam<T>(name);
         return this;
     }
 
