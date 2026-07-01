@@ -101,76 +101,7 @@ FluentSql should return the right IFluentSqlClient implementation for the given
 database provider.
 
 there is a ClientBase class that implements common functionality, and then
-a MySqlClient, PostgresClient, SqlServerClient, SqliteClient that can inherit from it.FILE .vscode/launch.json
-LENGTH 1098
-{
-    "version": "0.2.0",
-    "configurations": [
-        {
-            // Use IntelliSense to find out which attributes exist for C# debugging
-            // Use hover for the description of the existing attributes
-            // For further information visit https://github.com/dotnet/vscode-csharp/blob/main/debugger-launchjson.md
-            "name": ".NET Core Launch (console)",
-            "type": "coreclr",
-            "request": "launch",
-            "preLaunchTask": "build",
-            // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/test/TestFluentSqlLib/bin/Debug/net10.0/TestFluentSqlLib.dll",
-            "args": [],
-            "cwd": "${workspaceFolder}/test/TestFluentSqlLib",
-            // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
-            "console": "internalConsole",
-            "stopAtEntry": false
-        },
-        {
-            "name": ".NET Core Attach",
-            "type": "coreclr",
-            "request": "attach"
-        }
-    ]
-}FILE .vscode/tasks.json
-LENGTH 1250
-{
-    "version": "2.0.0",
-    "tasks": [
-        {
-            "label": "build",
-            "command": "dotnet",
-            "type": "process",
-            "args": [
-                "build",
-                "${workspaceFolder}/test/TestFluentSqlLib/TestFluentSqlLib.csproj",
-                "/property:GenerateFullPaths=true",
-                "/consoleloggerparameters:NoSummary;ForceNoAlign"
-            ],
-            "problemMatcher": "$msCompile"
-        },
-        {
-            "label": "publish",
-            "command": "dotnet",
-            "type": "process",
-            "args": [
-                "publish",
-                "${workspaceFolder}/test/TestFluentSqlLib/TestFluentSqlLib.csproj",
-                "/property:GenerateFullPaths=true",
-                "/consoleloggerparameters:NoSummary;ForceNoAlign"
-            ],
-            "problemMatcher": "$msCompile"
-        },
-        {
-            "label": "watch",
-            "command": "dotnet",
-            "type": "process",
-            "args": [
-                "watch",
-                "run",
-                "--project",
-                "${workspaceFolder}/test/TestFluentSqlLib/TestFluentSqlLib.csproj"
-            ],
-            "problemMatcher": "$msCompile"
-        }
-    ]
-}FILE src/FluentSqlLib/ClientBase.cs
+a MySqlClient, PostgresClient, SqlServerClient, SqliteClient that can inherit from it.FILE src/FluentSqlLib/ClientBase.cs
 LENGTH 15448
 using Microsoft.Extensions.Logging;
 using System.Data.Common;
@@ -948,11 +879,11 @@ public class FluentSql<TSettings>(ILogger<TSettings> logger, TSettings settings)
         new FluentQueryContext(this, name);
 }
 FILE src/FluentSqlLib/FluentSqlLib.csproj
-LENGTH 533
+LENGTH 532
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
@@ -2256,11 +2187,11 @@ public class FluentStoredProcedureContextTests(LocalDbFixture db)
     }
 }
 FILE test/TestFluentSqlLib/TestFluentSqlLib.csproj
-LENGTH 1631
+LENGTH 1697
 <Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>net10.0</TargetFramework>
+		<TargetFramework>net8.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<IsPackable>false</IsPackable>
@@ -2268,6 +2199,7 @@ LENGTH 1631
 
 	<ItemGroup>
 		<PackageReference Include="AwesomeAssertions" Version="9.3.0" />
+		<PackageReference Include="System.Linq.Async" Version="6.0.1" />
 		<PackageReference Include="coverlet.collector" Version="6.0.4" />
 		<PackageReference Include="Microsoft.SqlServer.SqlManagementObjects" Version="180.10.0" />
 		<PackageReference Include="Microsoft.SqlServer.DacFx" Version="170.2.70" />
