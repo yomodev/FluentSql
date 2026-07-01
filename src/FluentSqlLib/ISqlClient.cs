@@ -4,17 +4,37 @@ namespace FluentSqlLib;
 
 public interface ISqlClient : IDisposable
 {
+    /// <summary>
+    /// When set, the client connects to this database instead of the connection string's default.
+    /// Providers without cross-database connections (e.g. PostgreSQL, SQLite) may ignore this or throw.
+    /// </summary>
+    string? TargetDatabase { get; set; }
+
     DbConnection CreateConnection();
 
     DbCommand CreateCommand(DbConnection connection);
 
     DbParameter CreateParameter(DbCommand command, QueryParameter qParam);
 
+    string QuoteIdentifier(string identifier);
+
+    string BuildDropTableSql(string tableName);
+
+    string BuildDropIndexSql(string indexName, string tableName);
+
+    string BuildDropStoredProcedureSql(string procedureName);
+
+    string BuildDropFunctionSql(string functionName);
+
+    string BuildDropViewSql(string viewName);
+
+    string BuildTruncateTableSql(string tableName);
+
     IAsyncEnumerable<IDataReader> EnumerateAsync(
         CancellationToken cancellationToken = default);
 
     IAsyncEnumerable<T> EnumerateAsync<T>(
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default) where T : new();
 
     IEnumerable<IDataReader> Enumerate();
 
@@ -66,6 +86,8 @@ public interface ISqlClient : IDisposable
         CancellationToken cancellationToken = default);
 
     ISqlParam WithOutputParam<T>(string name);
+
+    ISqlParam WithOutputParam<T>(string name, byte precision, byte scale);
 
     ISqlParam WithParam<T>(string name, T value);
 

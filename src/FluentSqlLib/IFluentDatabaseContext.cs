@@ -5,7 +5,7 @@ public interface IFluentDatabaseContext
     string Name { get; }
 
     ValueTask<bool> DropIndexAsync(
-        string indexName, CancellationToken cancellationToken = default);
+        string tableName, string indexName, CancellationToken cancellationToken = default);
 
     ValueTask<bool> DropStoredProcedureAsync(
         string procedureName, CancellationToken cancellationToken = default);

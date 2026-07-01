@@ -13,7 +13,14 @@ public class SqlServerClient<TSettings>(
 {
     public override DbConnection CreateConnection()
     {
-        var connection = new SqlConnection(settings.ConnectionString);
+        var connectionString = settings.ConnectionString;
+        if (!string.IsNullOrEmpty(TargetDatabase))
+        {
+            var builder = new SqlConnectionStringBuilder(connectionString) { InitialCatalog = TargetDatabase };
+            connectionString = builder.ConnectionString;
+        }
+
+        var connection = new SqlConnection(connectionString);
         if (logger.IsEnabled(LogLevel.Trace))
         {
             connection.StateChange += LogConnectionState;
@@ -34,24 +41,16 @@ public class SqlServerClient<TSettings>(
         Debug.Assert(sqlParam is not null);
         if (qParam.TableTypeName.Length > 0)
         {
-            // TODO
-            /*static IEnumerable<SqlDataRecord> CreateRecords(IEnumerable<int> ids)
+            if (qParam is not IGenericQueryParameter genericParam)
             {
-                var meta = new[]
-                {
-                    new SqlMetaData("Id", SqlDbType.Int)
-                };
-
-                foreach (var id in ids)
-                {
-                    var record = new SqlDataRecord(meta);
-                    record.SetInt32(0, id);
-                    yield return record;
-                }
+                throw new InvalidOperationException(
+                    $"Table-valued parameter '{qParam.Name}' must be created via QueryParameter<T> so its row type is known.");
             }
 
-            sqlParam.Value = CreateRecords(qParam.Value as IEnumerable)
-            */
+            var rows = qParam.Value as System.Collections.IEnumerable
+                ?? throw new InvalidOperationException($"Table-valued parameter '{qParam.Name}' has no rows.");
+
+            sqlParam.Value = Mapper.TvpBuilder.BuildDataTable(rows, genericParam.Type);
             sqlParam.SqlDbType = SqlDbType.Structured;
             sqlParam.TypeName = qParam.TableTypeName;
         }

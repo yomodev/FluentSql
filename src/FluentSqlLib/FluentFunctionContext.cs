@@ -8,7 +8,7 @@ public class FluentFunctionContext(
     private readonly ISqlClient client = fluentSql.CreateClient(new FunctionQuery(functionName));
 
     public IAsyncEnumerable<T> EnumerateAsync<T>(
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken) where T : new()
         => client.EnumerateAsync<T>(cancellationToken);
 
     public ValueTask<T> GetAsync<T>(

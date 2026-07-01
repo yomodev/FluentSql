@@ -4,7 +4,7 @@ public class FluentStoredProcedureContext(IFluentSql fluentSql, string procedure
 {
     internal ISqlClient _client = fluentSql.CreateClient(new StoredProcedureQuery(procedureName));
 
-    public IAsyncEnumerable<T> EnumerateAsync<T>(CancellationToken cancellationToken)
+    public IAsyncEnumerable<T> EnumerateAsync<T>(CancellationToken cancellationToken) where T : new()
         => _client.EnumerateAsync<T>(cancellationToken);
 
     public ValueTask<T> GetAsync<T>(CancellationToken cancellationToken = default)
@@ -37,6 +37,12 @@ public class FluentStoredProcedureContext(IFluentSql fluentSql, string procedure
     public ISpParam WithOutputParam<T>(string name)
     {
         _client.WithOutputParam<T>(name);
+        return this;
+    }
+
+    public ISpParam WithOutputParam<T>(string name, byte precision, byte scale)
+    {
+        _client.WithOutputParam<T>(name, precision, scale);
         return this;
     }
 

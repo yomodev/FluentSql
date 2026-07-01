@@ -26,7 +26,7 @@ public class Mapper
 
     public static DbType GetDbType<T>()
     {
-        throw new NotImplementedException();
+        return DbTypeMapper.FromClr(typeof(T)).DbType;
     }
 
     public sealed class DbTypeInfo
@@ -176,9 +176,27 @@ public class Mapper
             string name,
             IEnumerable<T> rows,
             string typeName)
+            => CreateTvp(name, rows, typeof(T), typeName);
+
+        public static SqlParameter CreateTvp(
+            string name,
+            System.Collections.IEnumerable rows,
+            Type rowType,
+            string typeName)
+        {
+            var table = BuildDataTable(rows, rowType);
+
+            return new SqlParameter(name, SqlDbType.Structured)
+            {
+                TypeName = typeName,
+                Value = table
+            };
+        }
+
+        public static DataTable BuildDataTable(System.Collections.IEnumerable rows, Type rowType)
         {
             var table = new DataTable();
-            var props = typeof(T).GetProperties();
+            var props = rowType.GetProperties();
 
             foreach (var prop in props)
             {
@@ -192,11 +210,7 @@ public class Mapper
                 table.Rows.Add(values);
             }
 
-            return new SqlParameter(name, SqlDbType.Structured)
-            {
-                TypeName = typeName,
-                Value = table
-            };
+            return table;
         }
     }
 }

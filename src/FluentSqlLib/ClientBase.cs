@@ -12,6 +12,7 @@ public abstract class ClientBase<TSettings>(
     where TSettings : IFluentSqlSettings
 {
     private bool _disposed;
+    public string? TargetDatabase { get; set; }
     protected readonly ILogger<TSettings> logger = logger;
     protected readonly TSettings settings = settings;
     protected readonly IQuery query = query;
@@ -46,13 +47,37 @@ public abstract class ClientBase<TSettings>(
         return dbParam;
     }
 
+    public virtual string QuoteIdentifier(string identifier)
+    {
+        var parts = identifier.Split('.');
+        return string.Join('.', parts.Select(p => $"[{p.Replace("]", "]]")}]"));
+    }
+
+    public virtual string BuildDropTableSql(string tableName)
+        => $"DROP TABLE {QuoteIdentifier(tableName)}";
+
+    public virtual string BuildDropIndexSql(string indexName, string tableName)
+        => $"DROP INDEX {QuoteIdentifier(indexName)} ON {QuoteIdentifier(tableName)}";
+
+    public virtual string BuildDropStoredProcedureSql(string procedureName)
+        => $"DROP PROCEDURE {QuoteIdentifier(procedureName)}";
+
+    public virtual string BuildDropFunctionSql(string functionName)
+        => $"DROP FUNCTION {QuoteIdentifier(functionName)}";
+
+    public virtual string BuildDropViewSql(string viewName)
+        => $"DROP VIEW {QuoteIdentifier(viewName)}";
+
+    public virtual string BuildTruncateTableSql(string tableName)
+        => $"TRUNCATE TABLE {QuoteIdentifier(tableName)}";
+
     public virtual IEnumerable<IDataReader> Enumerate()
     {
         var behavior = CommandBehavior.CloseConnection;
         using var connection = Connect();
         using var command = CreateCommand(connection);
         using var reader = command!.ExecuteReader(behavior);
-            TryPrepareStoredProcedureOutput();
+            TryPrepareStoredProcedureOutput(command);
         while (reader.Read())
         {
             yield return reader;
@@ -69,7 +94,7 @@ public abstract class ClientBase<TSettings>(
         using var connection = await ConnectAsync(cancellationToken);
         using var command = CreateCommand(connection);
         using var reader = await command.ExecuteReaderAsync(behavior, cancellationToken);
-            TryPrepareStoredProcedureOutput();
+            TryPrepareStoredProcedureOutput(command);
         while (await reader.ReadAsync(cancellationToken))
         {
             yield return reader;
@@ -85,9 +110,19 @@ public abstract class ClientBase<TSettings>(
         return EnumerateAsync(behavior, cancellationToken);
     }
 
-    public virtual IAsyncEnumerable<T> EnumerateAsync<T>(CancellationToken cancellationToken = default)
+    public virtual async IAsyncEnumerable<T> EnumerateAsync<T>(
+        [EnumeratorCancellation] CancellationToken cancellationToken = default) where T : new()
     {
-        throw new NotImplementedException();
+        var behavior = CommandBehavior.SingleResult | CommandBehavior.SequentialAccess | CommandBehavior.CloseConnection;
+        using var connection = await ConnectAsync(cancellationToken);
+        using var command = CreateCommand(connection);
+        using var reader = (SqlDataReader)await command.ExecuteReaderAsync(behavior, cancellationToken);
+        TryPrepareStoredProcedureOutput(command);
+        var mapper = RuntimeMapper.GetMapper<T>(reader);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            yield return mapper(reader);
+        }
     }
 
     // return the number of rows affected
@@ -96,7 +131,7 @@ public abstract class ClientBase<TSettings>(
         using var connection = Connect();
         using var command = CreateCommand(connection);
         var result = command.ExecuteNonQuery();
-            TryPrepareStoredProcedureOutput();
+            TryPrepareStoredProcedureOutput(command);
         connection.Close();
         return result;
     }
@@ -107,7 +142,7 @@ public abstract class ClientBase<TSettings>(
         using var connection = await ConnectAsync(cancellationToken);
         using var command = CreateCommand(connection);
         var result = await command.ExecuteNonQueryAsync(cancellationToken);
-            TryPrepareStoredProcedureOutput();
+            TryPrepareStoredProcedureOutput(command);
         connection.Close();
         return result;
     }
@@ -127,8 +162,9 @@ public abstract class ClientBase<TSettings>(
             var param = new QueryParameter<int>("@ReturnValue", DbType.Int32)
             { Direction = ParameterDirection.ReturnValue };
             parameters.Add(param);
+            command.Parameters.Add(CreateParameter(command, param));
             await command.ExecuteNonQueryAsync(cancellationToken);
-            TryPrepareStoredProcedureOutput();
+            TryPrepareStoredProcedureOutput(command);
             connection.Close();
             return (T)param.Value!;
         }
@@ -143,16 +179,40 @@ public abstract class ClientBase<TSettings>(
         throw new NotSupportedException("GetAsync without column parameter is only supported for stored procedures and functions.");
     }
 
-    public virtual ValueTask<T?> GetAsync<T>(
+    public virtual async ValueTask<T?> GetAsync<T>(
         string column, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        using var connection = await ConnectAsync(cancellationToken);
+        using var command = CreateCommand(connection);
+        using var reader = await command.ExecuteReaderAsync(CommandBehavior.SingleRow, cancellationToken);
+        if (await reader.ReadAsync(cancellationToken))
+        {
+            var ordinal = reader.GetOrdinal(column);
+            if (!reader.IsDBNull(ordinal))
+            {
+                return Mapper.MapScalar<T>(reader.GetValue(ordinal));
+            }
+        }
+
+        return default;
     }
 
-    public virtual ValueTask<T> GetAsync<T>(
+    public virtual async ValueTask<T> GetAsync<T>(
         string column, T defaultValue, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        using var connection = await ConnectAsync(cancellationToken);
+        using var command = CreateCommand(connection);
+        using var reader = await command.ExecuteReaderAsync(CommandBehavior.SingleRow, cancellationToken);
+        if (await reader.ReadAsync(cancellationToken))
+        {
+            var ordinal = reader.GetOrdinal(column);
+            if (!reader.IsDBNull(ordinal))
+            {
+                return Mapper.MapScalar<T>(reader.GetValue(ordinal));
+            }
+        }
+
+        return defaultValue;
     }
 
     public virtual async ValueTask<IReadOnlyDictionary<string, object?>> GetOutputAsync(
@@ -202,25 +262,81 @@ public abstract class ClientBase<TSettings>(
         return defaultValue;
     }
 
-    public T GetRequired<T>()
+    public virtual T GetRequired<T>()
     {
-        throw new NotImplementedException();
+        using var connection = Connect();
+        using var command = CreateCommand(connection);
+
+        if (query is IStoredProcedureQuery)
+        {
+            if (typeof(T) != typeof(int))
+            {
+                throw new InvalidOperationException("Return type for stored procedure must be Int32 when calling GetRequired without column parameter.");
+            }
+
+            var param = new QueryParameter<int>("@ReturnValue", DbType.Int32)
+            { Direction = ParameterDirection.ReturnValue };
+            parameters.Add(param);
+            command.Parameters.Add(CreateParameter(command, param));
+            command.ExecuteNonQuery();
+            TryPrepareStoredProcedureOutput(command);
+            connection.Close();
+            return (T)param.Value!;
+        }
+        else if (query is IFunctionQuery function)
+        {
+            command.CommandText = function.GetScalarFunctionText(parameters);
+            var result = command.ExecuteScalar();
+            connection.Close();
+            if (result is null || result == DBNull.Value)
+            {
+                throw new InvalidOperationException("Required scalar value was null.");
+            }
+
+            return Mapper.MapScalar<T>(result);
+        }
+
+        throw new NotSupportedException("GetRequired without column parameter is only supported for stored procedures and functions.");
     }
 
-    public T GetRequired<T>(string column)
+    public virtual T GetRequired<T>(string column)
     {
-        throw new NotImplementedException();
+        using var connection = Connect();
+        using var command = CreateCommand(connection);
+        using var reader = command.ExecuteReader(CommandBehavior.SingleRow);
+        if (reader.Read())
+        {
+            var ordinal = reader.GetOrdinal(column);
+            if (!reader.IsDBNull(ordinal))
+            {
+                return Mapper.MapScalar<T>(reader.GetValue(ordinal));
+            }
+        }
+
+        throw new InvalidOperationException($"Required column '{column}' was null or the query returned no rows.");
     }
 
-    public virtual ValueTask<T> GetRequiredAsync<T>(CancellationToken cancellationToken = default)
+    public virtual async ValueTask<T> GetRequiredAsync<T>(CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var value = await GetAsync<T>(cancellationToken);
+        if (value is null)
+        {
+            throw new InvalidOperationException("Required scalar value was null.");
+        }
+
+        return value;
     }
 
-    public virtual ValueTask<T> GetRequiredAsync<T>(
+    public virtual async ValueTask<T> GetRequiredAsync<T>(
         string column, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var value = await GetAsync<T>(column, cancellationToken);
+        if (value is null)
+        {
+            throw new InvalidOperationException($"Required column '{column}' was null or the query returned no rows.");
+        }
+
+        return value;
     }
 
     public virtual ValueTask<long> InsertManyAsync<T>(
@@ -232,6 +348,12 @@ public abstract class ClientBase<TSettings>(
     public virtual ISqlParam WithOutputParam<T>(string name)
     {
         parameters.Add(new QueryParameter<T>(name));
+        return this;
+    }
+
+    public virtual ISqlParam WithOutputParam<T>(string name, byte precision, byte scale)
+    {
+        parameters.Add(new QueryParameter<T>(name) { Precision = precision, Scale = scale });
         return this;
     }
 
@@ -307,11 +429,12 @@ public abstract class ClientBase<TSettings>(
         }
     }
 
-    protected void TryPrepareStoredProcedureOutput()
+    protected void TryPrepareStoredProcedureOutput(DbCommand command)
     {
         foreach (var param in parameters
             .Where(p => p.Direction is ParameterDirection.Output or ParameterDirection.InputOutput or ParameterDirection.ReturnValue))
         {
+            param.Value = command.Parameters[$"@{param.Name.TrimStart('@')}"].Value;
             outputDict[param.Name.TrimStart('@')] = param.Value;
         }
     }

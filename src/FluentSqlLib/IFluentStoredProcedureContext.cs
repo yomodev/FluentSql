@@ -11,6 +11,8 @@ public interface ISpParam : ISpNoParam
     ISpParam WithParam<T>(string name, IEnumerable<T> tableValued, string tableTypeName);
 
     ISpParam WithOutputParam<T>(string name);
+
+    ISpParam WithOutputParam<T>(string name, byte precision, byte scale);
 }
 
 public interface ISpNoParam : ISingleRowResult, IMultipleRowsResult, IMultipleResults

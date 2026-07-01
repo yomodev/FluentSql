@@ -9,6 +9,7 @@ public class QueryParameter<T> : QueryParameter, IGenericQueryParameter
     {
         Name = name;
         Value = value;
+        DbType = Mapper.GetDbType<T>();
     }
 
     [SetsRequiredMembers]
@@ -42,8 +43,6 @@ public class QueryParameter<T> : QueryParameter, IGenericQueryParameter
 
     public Type Type => typeof(T);
 }
-
-// TODO set DbType appropriately
 
 public class QueryParameter
 {
