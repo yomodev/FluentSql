@@ -117,12 +117,17 @@ public class Mapper
     {
         public static IEnumerable<SqlParameter> CreateParameters(object poco)
         {
-            foreach (var prop in poco.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
+            foreach (var column in ColumnMap.ResolveAll(poco.GetType()))
             {
-                var value = prop.GetValue(poco);
-                var typeInfo = DbTypeMapper.FromClr(prop.PropertyType);
+                if (column.Computed || column.Identity)
+                    continue;
 
-                var p = new SqlParameter("@" + prop.Name, SqlDbTypeMapper.ToSql(typeInfo))
+                var value = column.Property.GetValue(poco);
+                var typeInfo = column.DbType.HasValue
+                    ? new DbTypeInfo(column.DbType.Value, column.Precision, column.Scale, column.Size)
+                    : DbTypeMapper.FromClr(column.Property.PropertyType, column.Precision, column.Scale, column.Size);
+
+                var p = new SqlParameter("@" + column.ColumnName, SqlDbTypeMapper.ToSql(typeInfo))
                 {
                     Value = value ?? DBNull.Value
                 };
@@ -141,8 +146,10 @@ public class Mapper
         public static List<T> MapToList<T>(SqlDataReader reader) where T : new()
         {
             var result = new List<T>();
-            var props = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                                 .ToDictionary(p => p.Name, p => p, StringComparer.OrdinalIgnoreCase);
+            var columns = ColumnMap.ResolveAll(typeof(T));
+            var byOrdinal = columns.Where(c => c.Ordinal.HasValue).ToDictionary(c => c.Ordinal!.Value);
+            var byName = columns.Where(c => !c.Ordinal.HasValue)
+                                 .ToDictionary(c => c.ColumnName, StringComparer.OrdinalIgnoreCase);
 
             while (reader.Read())
             {
@@ -150,17 +157,18 @@ public class Mapper
 
                 for (int i = 0; i < reader.FieldCount; i++)
                 {
-                    var colName = reader.GetName(i);
-
-                    if (!props.TryGetValue(colName, out var prop))
+                    if (!byOrdinal.TryGetValue(i, out var column)
+                        && !byName.TryGetValue(reader.GetName(i), out column))
+                    {
                         continue;
+                    }
 
                     var val = reader.IsDBNull(i) ? null : reader.GetValue(i);
 
-                    if (val != null && prop.PropertyType == typeof(JsonDocument))
+                    if (val != null && column.Property.PropertyType == typeof(JsonDocument))
                         val = JsonDocument.Parse(val.ToString());
 
-                    prop.SetValue(item, val);
+                    column.Property.SetValue(item, val);
                 }
 
                 result.Add(item);
@@ -196,17 +204,19 @@ public class Mapper
         public static DataTable BuildDataTable(System.Collections.IEnumerable rows, Type rowType)
         {
             var table = new DataTable();
-            var props = rowType.GetProperties();
+            // Table-valued parameters bind columns by ordinal position against the SQL Server
+            // user-defined table type, so an explicit Ordinal must control column order here.
+            var columns = ColumnMap.ResolveAll(rowType).OrderBy(c => c.Ordinal ?? int.MaxValue).ToArray();
 
-            foreach (var prop in props)
+            foreach (var column in columns)
             {
-                var type = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
-                table.Columns.Add(prop.Name, type);
+                var type = Nullable.GetUnderlyingType(column.Property.PropertyType) ?? column.Property.PropertyType;
+                table.Columns.Add(column.ColumnName, type);
             }
 
             foreach (var row in rows)
             {
-                var values = props.Select(p => p.GetValue(row) ?? DBNull.Value).ToArray();
+                var values = columns.Select(c => c.Property.GetValue(row) ?? DBNull.Value).ToArray();
                 table.Rows.Add(values);
             }
 
@@ -235,16 +245,23 @@ public static class RuntimeMapper
             Expression.Assign(obj, Expression.New(typeof(T)))
         };
 
-        foreach (var p in typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        foreach (var column in ColumnMap.ResolveAll(typeof(T)))
         {
             int ord;
-            try { ord = reader.GetOrdinal(p.Name); }
-            catch { continue; }
+            if (column.Ordinal.HasValue)
+            {
+                ord = column.Ordinal.Value;
+            }
+            else
+            {
+                try { ord = reader.GetOrdinal(column.ColumnName); }
+                catch { continue; }
+            }
 
             var isDbNull = Expression.Call(r, nameof(SqlDataReader.IsDBNull), null, Expression.Constant(ord));
-            var getVal = Expression.Call(r, nameof(SqlDataReader.GetFieldValue), new[] { p.PropertyType }, Expression.Constant(ord));
+            var getVal = Expression.Call(r, nameof(SqlDataReader.GetFieldValue), new[] { column.Property.PropertyType }, Expression.Constant(ord));
 
-            var assign = Expression.Assign(Expression.Property(obj, p), getVal);
+            var assign = Expression.Assign(Expression.Property(obj, column.Property), getVal);
             body.Add(Expression.IfThen(Expression.Not(isDbNull), assign));
         }
 
