@@ -42,9 +42,47 @@ internal sealed class ColumnMap
         Identity = attribute?.Identity ?? false;
     }
 
+    private ColumnMap(PropertyInfo property, string explicitColumnName)
+    {
+        Property = property;
+        ColumnName = explicitColumnName;
+        Ordinal = null;
+        Ignore = false;
+        DbType = null;
+        Size = null;
+        Precision = null;
+        Scale = null;
+        Computed = false;
+        Identity = false;
+    }
+
     public static IReadOnlyList<ColumnMap> ResolveAll(Type type)
         => type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
             .Select(p => new ColumnMap(p, p.GetCustomAttribute<SqlColumnAttribute>()))
             .Where(m => !m.Ignore)
             .ToArray();
+
+    /// <summary>
+    /// Builds an explicit property-to-column mapping, bypassing <see cref="SqlColumnAttribute"/>
+    /// and convention entirely (used by the dictionary-based EnumerateAsync/QueryAsync overloads).
+    /// </summary>
+    public static IReadOnlyList<ColumnMap> ResolveExplicit<T>(IReadOnlyDictionary<string, string> propertyToColumn)
+    {
+        var properties = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .ToDictionary(p => p.Name, StringComparer.OrdinalIgnoreCase);
+
+        var columns = new List<ColumnMap>(propertyToColumn.Count);
+        foreach (var (propertyName, columnName) in propertyToColumn)
+        {
+            if (!properties.TryGetValue(propertyName, out var property))
+            {
+                throw new InvalidOperationException(
+                    $"Type '{typeof(T).Name}' has no public property named '{propertyName}'.");
+            }
+
+            columns.Add(new ColumnMap(property, columnName));
+        }
+
+        return columns;
+    }
 }

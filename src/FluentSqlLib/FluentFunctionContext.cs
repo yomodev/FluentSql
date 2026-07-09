@@ -8,8 +8,22 @@ public class FluentFunctionContext(
     private readonly ISqlClient client = fluentSql.CreateClient(new FunctionQuery(functionName));
 
     public IAsyncEnumerable<T> EnumerateAsync<T>(
-        CancellationToken cancellationToken) where T : new()
-        => client.EnumerateAsync<T>(cancellationToken);
+        bool skipMissingColumns = true, CancellationToken cancellationToken = default) where T : new()
+        => client.EnumerateAsync<T>(skipMissingColumns, cancellationToken);
+
+    public IAsyncEnumerable<T> EnumerateAsync<T>(
+        IReadOnlyDictionary<string, string> propertyToColumn,
+        bool skipMissingColumns = true, CancellationToken cancellationToken = default) where T : new()
+        => client.EnumerateAsync<T>(propertyToColumn, skipMissingColumns, cancellationToken);
+
+    public IAsyncEnumerable<T> EnumerateAsync<T>(
+        IReadOnlyDictionary<string, Action<T, IDataRecord>> columnSetters,
+        bool skipMissingColumns = true, CancellationToken cancellationToken = default) where T : new()
+        => client.EnumerateAsync<T>(columnSetters, skipMissingColumns, cancellationToken);
+
+    public IAsyncEnumerable<T> EnumerateAsync<T>(
+        Func<IDataRecord, T> mapper, CancellationToken cancellationToken = default)
+        => client.EnumerateAsync<T>(mapper, cancellationToken);
 
     public ValueTask<T> GetAsync<T>(
         CancellationToken cancellationToken = default)

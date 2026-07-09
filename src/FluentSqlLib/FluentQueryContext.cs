@@ -21,10 +21,46 @@ public class FluentQueryContext(IFluentSql fluentSql, string sql)
     }
 
     public async IAsyncEnumerable<T> QueryAsync<T>(
+        bool skipMissingColumns = true,
         [EnumeratorCancellation] CancellationToken cancellationToken = default) where T : new()
     {
         using var client = CreateClient();
-        await foreach (var item in client.EnumerateAsync<T>(cancellationToken))
+        await foreach (var item in client.EnumerateAsync<T>(skipMissingColumns, cancellationToken))
+        {
+            yield return item;
+        }
+    }
+
+    public async IAsyncEnumerable<T> QueryAsync<T>(
+        IReadOnlyDictionary<string, string> propertyToColumn,
+        bool skipMissingColumns = true,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default) where T : new()
+    {
+        using var client = CreateClient();
+        await foreach (var item in client.EnumerateAsync<T>(propertyToColumn, skipMissingColumns, cancellationToken))
+        {
+            yield return item;
+        }
+    }
+
+    public async IAsyncEnumerable<T> QueryAsync<T>(
+        IReadOnlyDictionary<string, Action<T, IDataRecord>> columnSetters,
+        bool skipMissingColumns = true,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default) where T : new()
+    {
+        using var client = CreateClient();
+        await foreach (var item in client.EnumerateAsync<T>(columnSetters, skipMissingColumns, cancellationToken))
+        {
+            yield return item;
+        }
+    }
+
+    public async IAsyncEnumerable<T> QueryAsync<T>(
+        Func<IDataRecord, T> mapper,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        using var client = CreateClient();
+        await foreach (var item in client.EnumerateAsync<T>(mapper, cancellationToken))
         {
             yield return item;
         }

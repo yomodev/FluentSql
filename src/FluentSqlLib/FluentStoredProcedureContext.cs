@@ -4,8 +4,23 @@ public class FluentStoredProcedureContext(IFluentSql fluentSql, string procedure
 {
     internal ISqlClient _client = fluentSql.CreateClient(new StoredProcedureQuery(procedureName));
 
-    public IAsyncEnumerable<T> EnumerateAsync<T>(CancellationToken cancellationToken) where T : new()
-        => _client.EnumerateAsync<T>(cancellationToken);
+    public IAsyncEnumerable<T> EnumerateAsync<T>(
+        bool skipMissingColumns = true, CancellationToken cancellationToken = default) where T : new()
+        => _client.EnumerateAsync<T>(skipMissingColumns, cancellationToken);
+
+    public IAsyncEnumerable<T> EnumerateAsync<T>(
+        IReadOnlyDictionary<string, string> propertyToColumn,
+        bool skipMissingColumns = true, CancellationToken cancellationToken = default) where T : new()
+        => _client.EnumerateAsync<T>(propertyToColumn, skipMissingColumns, cancellationToken);
+
+    public IAsyncEnumerable<T> EnumerateAsync<T>(
+        IReadOnlyDictionary<string, Action<T, IDataRecord>> columnSetters,
+        bool skipMissingColumns = true, CancellationToken cancellationToken = default) where T : new()
+        => _client.EnumerateAsync<T>(columnSetters, skipMissingColumns, cancellationToken);
+
+    public IAsyncEnumerable<T> EnumerateAsync<T>(
+        Func<IDataRecord, T> mapper, CancellationToken cancellationToken = default)
+        => _client.EnumerateAsync<T>(mapper, cancellationToken);
 
     public ValueTask<T> GetAsync<T>(CancellationToken cancellationToken = default)
         => _client.GetAsync<T>(cancellationToken);

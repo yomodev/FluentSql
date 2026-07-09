@@ -230,13 +230,25 @@ public static class RuntimeMapper
 {
     private static readonly ConcurrentDictionary<string, Delegate> _cache = new();
 
-    public static Func<SqlDataReader, T> GetMapper<T>(SqlDataReader reader) where T : new()
+    public static Func<SqlDataReader, T> GetMapper<T>(SqlDataReader reader, bool skipMissingColumns = true) where T : new()
     {
-        var key = $"{typeof(T).FullName}:{SchemaHash(reader)}";
-        return (Func<SqlDataReader, T>)_cache.GetOrAdd(key, _ => BuildMapper<T>(reader));
+        var key = $"{typeof(T).FullName}:{SchemaHash(reader)}:{skipMissingColumns}";
+        return (Func<SqlDataReader, T>)_cache.GetOrAdd(
+            key, _ => BuildMapper<T>(reader, ColumnMap.ResolveAll(typeof(T)), skipMissingColumns));
     }
 
-    private static Func<SqlDataReader, T> BuildMapper<T>(SqlDataReader reader) where T : new()
+    public static Func<SqlDataReader, T> GetMapper<T>(
+        SqlDataReader reader,
+        IReadOnlyDictionary<string, string> propertyToColumn,
+        bool skipMissingColumns = true) where T : new()
+    {
+        var key = $"{typeof(T).FullName}:{SchemaHash(reader)}:{HashColumnMap(propertyToColumn)}:{skipMissingColumns}";
+        return (Func<SqlDataReader, T>)_cache.GetOrAdd(
+            key, _ => BuildMapper<T>(reader, ColumnMap.ResolveExplicit<T>(propertyToColumn), skipMissingColumns));
+    }
+
+    private static Func<SqlDataReader, T> BuildMapper<T>(
+        SqlDataReader reader, IReadOnlyList<ColumnMap> columns, bool skipMissingColumns) where T : new()
     {
         var r = Expression.Parameter(typeof(SqlDataReader), "r");
         var obj = Expression.Variable(typeof(T), "o");
@@ -245,17 +257,37 @@ public static class RuntimeMapper
             Expression.Assign(obj, Expression.New(typeof(T)))
         };
 
-        foreach (var column in ColumnMap.ResolveAll(typeof(T)))
+        foreach (var column in columns)
         {
             int ord;
             if (column.Ordinal.HasValue)
             {
+                if (column.Ordinal.Value >= reader.FieldCount)
+                {
+                    if (!skipMissingColumns)
+                    {
+                        throw new InvalidOperationException(
+                            $"Ordinal {column.Ordinal.Value} for property '{column.Property.Name}' is out of range for this result set ({reader.FieldCount} columns).");
+                    }
+
+                    continue;
+                }
+
                 ord = column.Ordinal.Value;
             }
             else
             {
                 try { ord = reader.GetOrdinal(column.ColumnName); }
-                catch { continue; }
+                catch (IndexOutOfRangeException)
+                {
+                    if (!skipMissingColumns)
+                    {
+                        throw new InvalidOperationException(
+                            $"Column '{column.ColumnName}' for property '{column.Property.Name}' was not found in the result set.");
+                    }
+
+                    continue;
+                }
             }
 
             var isDbNull = Expression.Call(r, nameof(SqlDataReader.IsDBNull), null, Expression.Constant(ord));
@@ -269,6 +301,9 @@ public static class RuntimeMapper
         var block = Expression.Block(new[] { obj }, body);
         return Expression.Lambda<Func<SqlDataReader, T>>(block, r).Compile();
     }
+
+    private static string HashColumnMap(IReadOnlyDictionary<string, string> propertyToColumn)
+        => string.Join('|', propertyToColumn.OrderBy(kv => kv.Key, StringComparer.Ordinal).Select(kv => $"{kv.Key}={kv.Value}"));
 
     private static string SchemaHash(SqlDataReader r)
     {
