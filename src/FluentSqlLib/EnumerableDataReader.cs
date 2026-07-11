@@ -67,7 +67,17 @@ internal sealed class EnumerableDataReader<T> : IDataReader
     }
 
     public Type GetFieldType(int i)
-        => Nullable.GetUnderlyingType(_columns[i].Property.PropertyType) ?? _columns[i].Property.PropertyType;
+    {
+        var propertyType = _columns[i].Property.PropertyType;
+        // Enum values are yielded as their numeric underlying type by BulkRowAccessor, so report
+        // that here too - SqlBulkCopy must never see the enum type for an int/tinyint column.
+        if (RuntimeMapper.GetEnumType(propertyType) is { } enumType)
+        {
+            return Enum.GetUnderlyingType(enumType);
+        }
+
+        return Nullable.GetUnderlyingType(propertyType) ?? propertyType;
+    }
 
     public string GetDataTypeName(int i) => GetFieldType(i).Name;
 

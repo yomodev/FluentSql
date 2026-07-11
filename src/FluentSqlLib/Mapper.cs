@@ -298,15 +298,28 @@ public static class RuntimeMapper
 
             var isDbNull = Expression.Call(r, nameof(SqlDataReader.IsDBNull), null, Expression.Constant(ord));
 
+            var propertyType = column.Property.PropertyType;
+            var enumType = GetEnumType(propertyType);
+
             Expression getVal;
-            if (ColumnConverterRegistry.TryGet(column.Property.PropertyType, out var converter))
+            if (ColumnConverterRegistry.TryGet(propertyType, out var converter))
             {
+                // A registered converter wins over built-in enum handling, so an enum can still
+                // be persisted as text (or anything else) if the caller registers for it.
                 var rawGet = Expression.Call(r, nameof(SqlDataReader.GetFieldValue), new[] { converter!.DbType }, Expression.Constant(ord));
                 getVal = Expression.Invoke(Expression.Constant(converter.FromDb), rawGet);
             }
+            else if (enumType is not null)
+            {
+                // Enums are stored as their numeric underlying type: read that, then reinterpret
+                // to the enum (and re-wrap in Nullable<> if the property is nullable) - no boxing.
+                var underlying = Enum.GetUnderlyingType(enumType);
+                var rawGet = Expression.Call(r, nameof(SqlDataReader.GetFieldValue), new[] { underlying }, Expression.Constant(ord));
+                getVal = Expression.Convert(Expression.Convert(rawGet, enumType), propertyType);
+            }
             else
             {
-                getVal = Expression.Call(r, nameof(SqlDataReader.GetFieldValue), new[] { column.Property.PropertyType }, Expression.Constant(ord));
+                getVal = Expression.Call(r, nameof(SqlDataReader.GetFieldValue), new[] { propertyType }, Expression.Constant(ord));
             }
 
             var assign = Expression.Assign(Expression.Property(obj, column.Property), getVal);
@@ -316,6 +329,13 @@ public static class RuntimeMapper
         body.Add(obj);
         var block = Expression.Block(new[] { obj }, body);
         return Expression.Lambda<Func<SqlDataReader, T>>(block, r).Compile();
+    }
+
+    /// <summary>Returns the enum type behind a property type (unwrapping Nullable&lt;&gt;), or null if not an enum.</summary>
+    internal static Type? GetEnumType(Type propertyType)
+    {
+        var underlying = Nullable.GetUnderlyingType(propertyType) ?? propertyType;
+        return underlying.IsEnum ? underlying : null;
     }
 
     private static string HashColumnMap(IReadOnlyDictionary<string, string> propertyToColumn)

@@ -54,6 +54,17 @@ internal static class BulkRowAccessor
         {
             value = Expression.Invoke(Expression.Constant(converter!.ToDb), propertyAccess);
         }
+        else if (RuntimeMapper.GetEnumType(value.Type) is { } enumType)
+        {
+            // Send enums to the DB as their numeric underlying type (lifted through Nullable<>
+            // when the property is nullable), so the destination int/tinyint/etc. column matches
+            // and SqlBulkCopy never sees the enum type.
+            var underlying = Enum.GetUnderlyingType(enumType);
+            var targetType = Nullable.GetUnderlyingType(value.Type) is not null
+                ? typeof(Nullable<>).MakeGenericType(underlying)
+                : underlying;
+            value = Expression.Convert(value, targetType);
+        }
 
         var underlyingNullable = Nullable.GetUnderlyingType(value.Type);
         if (underlyingNullable is not null)
