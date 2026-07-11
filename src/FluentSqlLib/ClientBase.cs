@@ -415,10 +415,31 @@ public abstract class ClientBase<TSettings>(
         return value;
     }
 
-    public virtual ValueTask<long> InsertManyAsync<T>(
-        IEnumerable<T> rows, CancellationToken cancellationToken = default)
+    public virtual async ValueTask<long> InsertManyAsync<T>(
+        IEnumerable<T> rows, int? batchSize = null, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var tableName = query.GetText(parameters);
+        using var connection = (SqlConnection)await ConnectAsync(cancellationToken);
+        using var reader = new EnumerableDataReader<T>(rows);
+
+        using var bulkCopy = new SqlBulkCopy(connection)
+        {
+            DestinationTableName = tableName
+        };
+
+        if (batchSize.HasValue)
+        {
+            bulkCopy.BatchSize = batchSize.Value;
+        }
+
+        for (int i = 0; i < reader.Columns.Count; i++)
+        {
+            bulkCopy.ColumnMappings.Add(i, reader.Columns[i].ColumnName);
+        }
+
+        await bulkCopy.WriteToServerAsync(reader, cancellationToken);
+        connection.Close();
+        return reader.RowsRead;
     }
 
     public virtual ISqlParam WithOutputParam<T>(string name)

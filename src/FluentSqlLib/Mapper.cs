@@ -291,7 +291,17 @@ public static class RuntimeMapper
             }
 
             var isDbNull = Expression.Call(r, nameof(SqlDataReader.IsDBNull), null, Expression.Constant(ord));
-            var getVal = Expression.Call(r, nameof(SqlDataReader.GetFieldValue), new[] { column.Property.PropertyType }, Expression.Constant(ord));
+
+            Expression getVal;
+            if (ColumnConverterRegistry.TryGet(column.Property.PropertyType, out var converter))
+            {
+                var rawGet = Expression.Call(r, nameof(SqlDataReader.GetFieldValue), new[] { converter!.DbType }, Expression.Constant(ord));
+                getVal = Expression.Invoke(Expression.Constant(converter.FromDb), rawGet);
+            }
+            else
+            {
+                getVal = Expression.Call(r, nameof(SqlDataReader.GetFieldValue), new[] { column.Property.PropertyType }, Expression.Constant(ord));
+            }
 
             var assign = Expression.Assign(Expression.Property(obj, column.Property), getVal);
             body.Add(Expression.IfThen(Expression.Not(isDbNull), assign));

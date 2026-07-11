@@ -98,6 +98,7 @@ public interface ISqlClient : IDisposable
 
     ValueTask<long> InsertManyAsync<T>(
         IEnumerable<T> rows,
+        int? batchSize = null,
         CancellationToken cancellationToken = default);
 
     ISqlParam WithOutputParam<T>(string name);

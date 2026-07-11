@@ -3,8 +3,10 @@ namespace FluentSqlLib;
 
 public class FluentTableContext(IFluentSql fluentSql, string tableName) : IFluentTableContext
 {
-    public ValueTask<long> InsertManyAsync<T>(IEnumerable<T> rows, CancellationToken cancellationToken = default)
+    public async ValueTask<long> InsertManyAsync<T>(
+        IEnumerable<T> rows, int? batchSize = null, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        using var client = fluentSql.CreateClient(new NoResultQuery(tableName));
+        return await client.InsertManyAsync(rows, batchSize, cancellationToken);
     }
 }
