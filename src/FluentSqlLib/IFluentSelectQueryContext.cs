@@ -18,6 +18,8 @@ public interface IFluentSelectQueryContext
     IAsyncEnumerable<T> QueryAsync<T>(
         Func<IDataRecord, T> mapper, CancellationToken cancellationToken = default);
 
+    ValueTask<IMultipleResultReader> QueryMultipleAsync(CancellationToken cancellationToken = default);
+
     ValueTask<T?> GetAsync<T>(string column, CancellationToken cancellationToken = default);
 
     ValueTask<T> GetAsync<T>(string column, T defaultValue, CancellationToken cancellationToken = default);

@@ -22,6 +22,9 @@ public class FluentStoredProcedureContext(IFluentSql fluentSql, string procedure
         Func<IDataRecord, T> mapper, CancellationToken cancellationToken = default)
         => _client.EnumerateAsync<T>(mapper, cancellationToken);
 
+    public ValueTask<IMultipleResultReader> QueryMultipleAsync(CancellationToken cancellationToken = default)
+        => _client.QueryMultipleAsync(cancellationToken);
+
     public ValueTask<T> GetAsync<T>(CancellationToken cancellationToken = default)
         => _client.GetAsync<T>(cancellationToken);
 

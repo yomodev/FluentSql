@@ -51,6 +51,9 @@ public interface ISqlClient : IDisposable
         Func<IDataRecord, T> mapper,
         CancellationToken cancellationToken = default);
 
+    ValueTask<IMultipleResultReader> QueryMultipleAsync(
+        CancellationToken cancellationToken = default);
+
     IEnumerable<IDataReader> Enumerate();
 
     int Execute();

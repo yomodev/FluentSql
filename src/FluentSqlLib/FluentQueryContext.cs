@@ -66,6 +66,14 @@ public class FluentQueryContext(IFluentSql fluentSql, string sql)
         }
     }
 
+    public async ValueTask<IMultipleResultReader> QueryMultipleAsync(CancellationToken cancellationToken = default)
+    {
+        // The reader owns its own connection; the client only holds the (now-consumed) parameter
+        // list, so disposing it here does not affect the returned reader.
+        using var client = CreateClient();
+        return await client.QueryMultipleAsync(cancellationToken);
+    }
+
     public async ValueTask<T?> GetAsync<T>(string column, CancellationToken cancellationToken = default)
     {
         using var client = CreateClient();
