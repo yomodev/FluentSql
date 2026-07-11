@@ -47,3 +47,25 @@ GO
 CREATE PROCEDURE dbo.sp_BulkInsertOrders @orders dbo.OrderTableType READONLY AS
 BEGIN INSERT INTO Orders(UserId,Total) SELECT UserId,Total FROM @orders; END;
 GO
+
+-- Wide table-valued parameter type for multi-type / nullable coverage
+CREATE TYPE dbo.WideTableType AS TABLE(
+    IntCol INT,
+    BitCol BIT,
+    DecimalCol DECIMAL(18,4),
+    FloatCol FLOAT,
+    GuidCol UNIQUEIDENTIFIER,
+    DateCol DATETIME2,
+    TextCol NVARCHAR(200) NULL,
+    NullableIntCol INT NULL
+);
+GO
+
+-- Echoes a wide TVP straight back as a result set, for TVP round-trip testing
+CREATE PROCEDURE dbo.sp_EchoWideTvp @rows dbo.WideTableType READONLY AS
+BEGIN
+    SELECT IntCol, BitCol, DecimalCol, FloatCol, GuidCol, DateCol, TextCol, NullableIntCol
+    FROM @rows
+    ORDER BY IntCol;
+END;
+GO

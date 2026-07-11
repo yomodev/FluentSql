@@ -206,6 +206,12 @@ public class Mapper
             var table = new DataTable();
             // Table-valued parameters bind columns by ordinal position against the SQL Server
             // user-defined table type, so an explicit Ordinal must control column order here.
+            //
+            // Unlike InsertManyAsync/SqlParameterFactory, Computed/Identity columns are NOT
+            // excluded here: a TVP's shape is defined independently by its user-defined table
+            // type, so a DTO's insert-time "this is an identity column" annotation must not
+            // silently drop it from an unrelated TVP. Use [SqlColumn(Ignore = true)] to exclude
+            // a property from a TVP.
             var columns = ColumnMap.ResolveAll(rowType).OrderBy(c => c.Ordinal ?? int.MaxValue).ToArray();
 
             foreach (var column in columns)

@@ -3,7 +3,7 @@ namespace FluentSqlLib;
 public class FluentSqlTransaction(IFluentSql client) : IFluentSqlTransaction
 {
     private bool _transactionCompleted;
-    private bool disposedValue;
+    private bool _disposed;
 
     public void Commit()
     {
@@ -25,7 +25,7 @@ public class FluentSqlTransaction(IFluentSql client) : IFluentSqlTransaction
 
     protected virtual void Dispose(bool disposing)
     {
-        if (disposedValue)
+        if (_disposed)
         {
             return;
         }
@@ -35,7 +35,7 @@ public class FluentSqlTransaction(IFluentSql client) : IFluentSqlTransaction
             Rollback();
         }
 
-        disposedValue = true;
+        _disposed = true;
     }
 
     public void Dispose()
