@@ -5,4 +5,5 @@
   </Folder>
   <Project Path="src/FluentSqlLib/FluentSqlLib.csproj" />
   <Project Path="test/TestFluentSqlLib/TestFluentSqlLib.csproj" />
+  <Project Path="bench/FluentSqlLib.Benchmarks/FluentSqlLib.Benchmarks.csproj" />
 </Solution>
