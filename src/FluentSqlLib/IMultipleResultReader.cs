@@ -6,7 +6,7 @@ namespace FluentSqlLib;
 /// call drains the current grid and advances to the next. A grid must be fully enumerated before
 /// requesting the next one, and reading past the last grid throws.
 /// </summary>
-public interface IMultipleResultReader : IAsyncDisposable
+public interface IMultipleResultReader : IAsyncDisposable, IDisposable
 {
     /// <summary>Streams the current result set as <typeparamref name="T"/>, then advances to the next grid.</summary>
     IAsyncEnumerable<T> ReadAsync<T>(
@@ -20,4 +20,10 @@ public interface IMultipleResultReader : IAsyncDisposable
 
     /// <summary>Reads the first column of the first row of the current result set, then advances to the next grid.</summary>
     ValueTask<T?> ReadScalarAsync<T>(CancellationToken cancellationToken = default);
+
+    /// <summary>Synchronously materializes the current result set as a list, then advances to the next grid.</summary>
+    IReadOnlyList<T> ReadList<T>(bool skipMissingColumns = true) where T : new();
+
+    /// <summary>Synchronously reads the first column of the first row of the current result set, then advances.</summary>
+    T? ReadScalar<T>();
 }

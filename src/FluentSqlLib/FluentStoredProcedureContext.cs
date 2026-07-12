@@ -25,6 +25,43 @@ public class FluentStoredProcedureContext(IFluentSql fluentSql, string procedure
     public ValueTask<IMultipleResultReader> QueryMultipleAsync(CancellationToken cancellationToken = default)
         => _client.QueryMultipleAsync(cancellationToken);
 
+    // --- Synchronous counterparts ---
+
+    public IEnumerable<T> Enumerate<T>(bool skipMissingColumns = true) where T : new()
+        => _client.Enumerate<T>(skipMissingColumns);
+
+    public IEnumerable<T> Enumerate<T>(
+        IReadOnlyDictionary<string, string> propertyToColumn, bool skipMissingColumns = true) where T : new()
+        => _client.Enumerate<T>(propertyToColumn, skipMissingColumns);
+
+    public IEnumerable<T> Enumerate<T>(
+        IReadOnlyDictionary<string, Action<T, IDataRecord>> columnSetters, bool skipMissingColumns = true) where T : new()
+        => _client.Enumerate<T>(columnSetters, skipMissingColumns);
+
+    public IEnumerable<T> Enumerate<T>(Func<IDataRecord, T> mapper)
+        => _client.Enumerate<T>(mapper);
+
+    public IMultipleResultReader QueryMultiple()
+        => _client.QueryMultiple();
+
+    public T Get<T>() => _client.Get<T>();
+
+    public T? Get<T>(string column) => _client.Get<T>(column);
+
+    public T Get<T>(string column, T defaultValue) => _client.Get<T>(column, defaultValue);
+
+    public T GetRequired<T>() => _client.GetRequired<T>();
+
+    public T GetRequired<T>(string column) => _client.GetRequired<T>(column);
+
+    public IReadOnlyDictionary<string, object?> GetOutput() => _client.GetOutput();
+
+    public T GetOutput<T>() => _client.GetOutput<T>();
+
+    public T? GetOutput<T>(string column) => _client.GetOutput<T>(column);
+
+    public T GetOutput<T>(string column, T defaultValue) => _client.GetOutput<T>(column, defaultValue);
+
     public ValueTask<T> GetAsync<T>(CancellationToken cancellationToken = default)
         => _client.GetAsync<T>(cancellationToken);
 

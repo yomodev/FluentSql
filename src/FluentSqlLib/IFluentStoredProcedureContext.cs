@@ -26,4 +26,14 @@ public interface ISpNoParam : ISingleRowResult, IMultipleRowsResult, IMultipleRe
     ValueTask<T?> GetOutputAsync<T>(string column, CancellationToken cancellationToken = default);
 
     ValueTask<T> GetOutputAsync<T>(string column, T defaultValue, CancellationToken cancellationToken = default);
+
+    // --- Synchronous counterparts ---
+
+    IReadOnlyDictionary<string, object?> GetOutput();
+
+    T GetOutput<T>();
+
+    T? GetOutput<T>(string column);
+
+    T GetOutput<T>(string column, T defaultValue);
 }

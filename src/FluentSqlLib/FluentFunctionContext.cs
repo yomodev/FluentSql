@@ -57,4 +57,26 @@ public class FluentFunctionContext(
         client.WithParam(name, value);
         return this;
     }
+
+    // --- Synchronous counterparts ---
+
+    public IEnumerable<T> Enumerate<T>(bool skipMissingColumns = true) where T : new()
+        => client.Enumerate<T>(skipMissingColumns);
+
+    public IEnumerable<T> Enumerate<T>(
+        IReadOnlyDictionary<string, string> propertyToColumn, bool skipMissingColumns = true) where T : new()
+        => client.Enumerate<T>(propertyToColumn, skipMissingColumns);
+
+    public IEnumerable<T> Enumerate<T>(
+        IReadOnlyDictionary<string, Action<T, IDataRecord>> columnSetters, bool skipMissingColumns = true) where T : new()
+        => client.Enumerate<T>(columnSetters, skipMissingColumns);
+
+    public IEnumerable<T> Enumerate<T>(Func<IDataRecord, T> mapper)
+        => client.Enumerate<T>(mapper);
+
+    public T Get<T>() => client.Get<T>();
+
+    public T? Get<T>(string column) => client.Get<T>(column);
+
+    public T Get<T>(string column, T defaultValue) => client.Get<T>(column, defaultValue);
 }

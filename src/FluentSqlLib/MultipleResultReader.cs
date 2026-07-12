@@ -39,6 +39,37 @@ internal sealed class MultipleResultReader(
         return list;
     }
 
+    public IReadOnlyList<T> ReadList<T>(bool skipMissingColumns = true) where T : new()
+    {
+        EnsureMoreResults();
+        var list = new List<T>();
+        var mapper = RuntimeMapper.GetMapper<T>(reader, skipMissingColumns);
+        while (reader.Read())
+        {
+            list.Add(mapper(reader));
+        }
+
+        _hasMoreResults = reader.NextResult();
+        return list;
+    }
+
+    public T? ReadScalar<T>()
+    {
+        EnsureMoreResults();
+        T? result = default;
+        if (reader.Read() && !reader.IsDBNull(0))
+        {
+            result = Mapper.MapScalar<T>(reader.GetValue(0));
+        }
+
+        while (reader.Read())
+        {
+        }
+
+        _hasMoreResults = reader.NextResult();
+        return result;
+    }
+
     public async ValueTask<T?> ReadScalarAsync<T>(CancellationToken cancellationToken = default)
     {
         EnsureMoreResults();
@@ -78,5 +109,18 @@ internal sealed class MultipleResultReader(
         await reader.DisposeAsync();
         await command.DisposeAsync();
         await connection.DisposeAsync();
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        reader.Dispose();
+        command.Dispose();
+        connection.Dispose();
     }
 }

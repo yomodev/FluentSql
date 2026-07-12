@@ -9,4 +9,10 @@ public class FluentTableContext(IFluentSql fluentSql, string tableName) : IFluen
         using var client = fluentSql.CreateClient(new NoResultQuery(tableName));
         return await client.InsertManyAsync(rows, batchSize, cancellationToken);
     }
+
+    public long InsertMany<T>(IEnumerable<T> rows, int? batchSize = null)
+    {
+        using var client = fluentSql.CreateClient(new NoResultQuery(tableName));
+        return client.InsertMany(rows, batchSize);
+    }
 }

@@ -54,6 +54,36 @@ public interface ISqlClient : IDisposable
     ValueTask<IMultipleResultReader> QueryMultipleAsync(
         CancellationToken cancellationToken = default);
 
+    // --- Synchronous counterparts ---
+
+    IEnumerable<T> Enumerate<T>(bool skipMissingColumns = true) where T : new();
+
+    IEnumerable<T> Enumerate<T>(
+        IReadOnlyDictionary<string, string> propertyToColumn, bool skipMissingColumns = true) where T : new();
+
+    IEnumerable<T> Enumerate<T>(
+        IReadOnlyDictionary<string, Action<T, IDataRecord>> columnSetters, bool skipMissingColumns = true) where T : new();
+
+    IEnumerable<T> Enumerate<T>(Func<IDataRecord, T> mapper);
+
+    T Get<T>();
+
+    T? Get<T>(string column);
+
+    T Get<T>(string column, T defaultValue);
+
+    IReadOnlyDictionary<string, object?> GetOutput();
+
+    T GetOutput<T>();
+
+    T? GetOutput<T>(string column);
+
+    T GetOutput<T>(string column, T defaultValue);
+
+    long InsertMany<T>(IEnumerable<T> rows, int? batchSize = null);
+
+    IMultipleResultReader QueryMultiple();
+
     IEnumerable<IDataReader> Enumerate();
 
     int Execute();

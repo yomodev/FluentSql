@@ -86,6 +86,52 @@ public class FluentQueryContext(IFluentSql fluentSql, string sql)
         return await client.GetAsync<T>(column, defaultValue, cancellationToken);
     }
 
+    public IEnumerable<T> Query<T>(bool skipMissingColumns = true) where T : new()
+    {
+        using var client = CreateClient();
+        foreach (var item in client.Enumerate<T>(skipMissingColumns))
+        {
+            yield return item;
+        }
+    }
+
+    public IEnumerable<T> Query<T>(
+        IReadOnlyDictionary<string, string> propertyToColumn, bool skipMissingColumns = true) where T : new()
+    {
+        using var client = CreateClient();
+        foreach (var item in client.Enumerate<T>(propertyToColumn, skipMissingColumns))
+        {
+            yield return item;
+        }
+    }
+
+    public IEnumerable<T> Query<T>(Func<IDataRecord, T> mapper)
+    {
+        using var client = CreateClient();
+        foreach (var item in client.Enumerate<T>(mapper))
+        {
+            yield return item;
+        }
+    }
+
+    public IMultipleResultReader QueryMultiple()
+    {
+        using var client = CreateClient();
+        return client.QueryMultiple();
+    }
+
+    public T? Get<T>(string column)
+    {
+        using var client = CreateClient();
+        return client.Get<T>(column);
+    }
+
+    public T Get<T>(string column, T defaultValue)
+    {
+        using var client = CreateClient();
+        return client.Get<T>(column, defaultValue);
+    }
+
     private ISqlClient CreateClient()
     {
         var client = fluentSql.CreateClient(sql);

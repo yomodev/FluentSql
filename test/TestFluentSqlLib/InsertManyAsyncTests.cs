@@ -11,8 +11,10 @@ public class InsertManyAsyncTests(LocalDbFixture db)
     public async Task InsertManyAsync_StreamsRowsAndExcludesIdentityColumn()
     {
         var fluent = db.CreateFluentSql();
+        // Marker-scoped so the assertion is robust against the shared Products table.
+        var marker = Guid.NewGuid().ToString("N")[..8];
         var rows = Enumerable.Range(1, 50)
-            .Select(i => new ProductRow { Id = -1, Name = $"Product {i}", Price = i * 1.5m, Stock = i })
+            .Select(i => new ProductRow { Id = -1, Name = $"{marker}-{i}", Price = i * 1.5m, Stock = i })
             .ToArray();
 
         // batchSize smaller than the row count exercises SqlBulkCopy actually batching internally.
@@ -22,7 +24,8 @@ public class InsertManyAsyncTests(LocalDbFixture db)
 
         using var conn = new SqlConnection(db.ConnectionString);
         await conn.OpenAsync();
-        using var cmd = new SqlCommand("SELECT COUNT(*), MIN(ProductId) FROM dbo.Products;", conn);
+        using var cmd = new SqlCommand("SELECT COUNT(*), MIN(ProductId) FROM dbo.Products WHERE Name LIKE @M;", conn);
+        cmd.Parameters.AddWithValue("@M", $"{marker}-%");
         using var reader = await cmd.ExecuteReaderAsync();
         await reader.ReadAsync();
 
