@@ -323,12 +323,44 @@ public static class RuntimeMapper
             }
 
             var assign = Expression.Assign(Expression.Property(obj, column.Property), getVal);
-            body.Add(Expression.IfThen(Expression.Not(isDbNull), assign));
+            var guardedAssign = Expression.IfThen(Expression.Not(isDbNull), assign);
+
+            // Wrap each column read so a conversion failure names the column, its value, and the
+            // target property/type. try/catch is free on the success path; the cost is only paid
+            // when a mapping actually throws.
+            var ex = Expression.Parameter(typeof(Exception), "ex");
+            var describe = Expression.Throw(
+                Expression.Call(
+                    typeof(RuntimeMapper), nameof(BuildMappingException), null,
+                    Expression.Constant(column.ColumnName),
+                    Expression.Constant(column.Property.Name),
+                    Expression.Constant(propertyType, typeof(Type)),
+                    r,
+                    Expression.Constant(ord),
+                    ex));
+            body.Add(Expression.TryCatch(guardedAssign, Expression.Catch(ex, describe)));
         }
 
         body.Add(obj);
         var block = Expression.Block(new[] { obj }, body);
         return Expression.Lambda<Func<SqlDataReader, T>>(block, r).Compile();
+    }
+
+    internal static FluentSqlMappingException BuildMappingException(
+        string columnName, string propertyName, Type targetType, SqlDataReader reader, int ordinal, Exception inner)
+    {
+        string valueText;
+        try
+        {
+            valueText = reader.IsDBNull(ordinal) ? "NULL" : $"'{reader.GetValue(ordinal)}' ({reader.GetFieldType(ordinal).Name})";
+        }
+        catch
+        {
+            valueText = "<unavailable>";
+        }
+
+        var message = $"Failed to map column '{columnName}' (value: {valueText}) to property '{propertyName}' of type '{targetType.Name}'.";
+        return new FluentSqlMappingException(columnName, propertyName, targetType, message, inner);
     }
 
     /// <summary>Returns the enum type behind a property type (unwrapping Nullable&lt;&gt;), or null if not an enum.</summary>

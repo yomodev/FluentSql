@@ -43,7 +43,7 @@ public abstract partial class ClientBase<TSettings>
 
     public virtual IAsyncEnumerable<IDataReader> EnumerateAsync(CancellationToken cancellationToken = default)
     {
-        var behavior = CommandBehavior.SingleResult | CommandBehavior.SequentialAccess | CommandBehavior.CloseConnection;
+        var behavior = CommandBehavior.SingleResult | CommandBehavior.CloseConnection;
         return EnumerateAsync(behavior, cancellationToken);
     }
 
@@ -51,7 +51,7 @@ public abstract partial class ClientBase<TSettings>
         bool skipMissingColumns = true,
         [EnumeratorCancellation] CancellationToken cancellationToken = default) where T : new()
     {
-        var behavior = CommandBehavior.SingleResult | CommandBehavior.SequentialAccess | CommandBehavior.CloseConnection;
+        var behavior = CommandBehavior.SingleResult | CommandBehavior.CloseConnection;
         using var connection = await ConnectAsync(cancellationToken);
         using var command = CreateCommand(connection);
         using var reader = (SqlDataReader)await command.ExecuteReaderAsync(behavior, cancellationToken);
@@ -68,7 +68,7 @@ public abstract partial class ClientBase<TSettings>
         bool skipMissingColumns = true,
         [EnumeratorCancellation] CancellationToken cancellationToken = default) where T : new()
     {
-        var behavior = CommandBehavior.SingleResult | CommandBehavior.SequentialAccess | CommandBehavior.CloseConnection;
+        var behavior = CommandBehavior.SingleResult | CommandBehavior.CloseConnection;
         using var connection = await ConnectAsync(cancellationToken);
         using var command = CreateCommand(connection);
         using var reader = (SqlDataReader)await command.ExecuteReaderAsync(behavior, cancellationToken);
@@ -85,7 +85,7 @@ public abstract partial class ClientBase<TSettings>
         bool skipMissingColumns = true,
         [EnumeratorCancellation] CancellationToken cancellationToken = default) where T : new()
     {
-        var behavior = CommandBehavior.SingleResult | CommandBehavior.SequentialAccess | CommandBehavior.CloseConnection;
+        var behavior = CommandBehavior.SingleResult | CommandBehavior.CloseConnection;
         using var connection = await ConnectAsync(cancellationToken);
         using var command = CreateCommand(connection);
         using var reader = (SqlDataReader)await command.ExecuteReaderAsync(behavior, cancellationToken);
@@ -127,7 +127,7 @@ public abstract partial class ClientBase<TSettings>
         Func<IDataRecord, T> mapper,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var behavior = CommandBehavior.SingleResult | CommandBehavior.SequentialAccess | CommandBehavior.CloseConnection;
+        var behavior = CommandBehavior.SingleResult | CommandBehavior.CloseConnection;
         using var connection = await ConnectAsync(cancellationToken);
         using var command = CreateCommand(connection);
         using var reader = (SqlDataReader)await command.ExecuteReaderAsync(behavior, cancellationToken);
