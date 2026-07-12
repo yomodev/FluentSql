@@ -46,7 +46,16 @@ public abstract partial class ClientBase<TSettings>(
         dbParam.Value = qParam.Value ?? DBNull.Value;
         dbParam.Direction = qParam.Direction;
         dbParam.DbType = qParam.DbType;
-        dbParam.Size = qParam.Size ?? dbParam.Size;
+
+        var size = qParam.Size;
+        if (size is null && qParam.Direction != ParameterDirection.Input && IsVariableLength(qParam.DbType))
+        {
+            // Variable-length output/return parameters require an explicit size; default to MAX
+            // (-1) so callers don't have to specify one for the common case.
+            size = -1;
+        }
+
+        dbParam.Size = size ?? dbParam.Size;
         dbParam.Scale = qParam.Scale ?? dbParam.Scale;
         dbParam.Precision = qParam.Precision ?? dbParam.Precision;
         return dbParam;
@@ -104,6 +113,10 @@ public abstract partial class ClientBase<TSettings>(
             await GetAsync<int>(cancellationToken);
         }
     }
+
+    private static bool IsVariableLength(DbType dbType)
+        => dbType is DbType.String or DbType.AnsiString or DbType.Binary
+            or DbType.StringFixedLength or DbType.AnsiStringFixedLength;
 
     protected void TryPrepareStoredProcedureOutput(DbCommand command)
     {

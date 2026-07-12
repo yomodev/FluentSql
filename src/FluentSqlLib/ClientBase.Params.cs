@@ -15,6 +15,12 @@ public abstract partial class ClientBase<TSettings>
         return this;
     }
 
+    public virtual ISqlParam WithOutputParam<T>(string name, int size)
+    {
+        parameters.Add(new QueryParameter<T>(name) { Size = size });
+        return this;
+    }
+
     public virtual ISqlParam WithParam<T>(string name, T value)
     {
         parameters.Add(new QueryParameter<T>(name, value));

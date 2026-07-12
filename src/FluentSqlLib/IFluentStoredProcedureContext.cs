@@ -13,6 +13,8 @@ public interface ISpParam : ISpNoParam
     ISpParam WithOutputParam<T>(string name);
 
     ISpParam WithOutputParam<T>(string name, byte precision, byte scale);
+
+    ISpParam WithOutputParam<T>(string name, int size);
 }
 
 public interface ISpNoParam : ISingleRowResult, IMultipleRowsResult, IMultipleResults

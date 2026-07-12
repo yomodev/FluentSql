@@ -64,6 +64,12 @@ public class FluentStoredProcedureContext(IFluentSql fluentSql, string procedure
         return this;
     }
 
+    public ISpParam WithOutputParam<T>(string name, int size)
+    {
+        _client.WithOutputParam<T>(name, size);
+        return this;
+    }
+
     public ISpParam WithParam<T>(string name, T value)
     {
         _client.WithParam(name, value);

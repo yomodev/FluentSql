@@ -48,6 +48,20 @@ CREATE PROCEDURE dbo.sp_BulkInsertOrders @orders dbo.OrderTableType READONLY AS
 BEGIN INSERT INTO Orders(UserId,Total) SELECT UserId,Total FROM @orders; END;
 GO
 
+-- Mixed-type OUTPUT parameters
+CREATE PROCEDURE dbo.sp_MixedOutputs
+    @inValue INT,
+    @outInt INT OUTPUT,
+    @outString NVARCHAR(50) OUTPUT,
+    @outBit BIT OUTPUT
+AS
+BEGIN
+    SET @outInt = @inValue * 2;
+    SET @outString = CONCAT('echo-', @inValue);
+    SET @outBit = 1;
+END;
+GO
+
 -- Wide table-valued parameter type for multi-type / nullable coverage
 CREATE TYPE dbo.WideTableType AS TABLE(
     IntCol INT,

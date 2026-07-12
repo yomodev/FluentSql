@@ -108,6 +108,8 @@ public interface ISqlClient : IDisposable
 
     ISqlParam WithOutputParam<T>(string name, byte precision, byte scale);
 
+    ISqlParam WithOutputParam<T>(string name, int size);
+
     ISqlParam WithParam<T>(string name, T value);
 
     ISqlParam WithParam<T>(
