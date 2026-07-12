@@ -30,7 +30,8 @@ public class ErrorSimulationTests(LocalDbFixture db)
         ex.PropertyName.Should().Be("FirstName");
         ex.TargetType.Should().Be(typeof(int));
         ex.Message.Should().Contain("FirstName");
-        ex.Message.Should().Contain("NotANumber");
+        // The source DB type is named even when the value can't be re-read under sequential access.
+        ex.Message.Should().Contain("Int32");
     }
 
     [Fact]

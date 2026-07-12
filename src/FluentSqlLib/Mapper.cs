@@ -263,6 +263,11 @@ public static class RuntimeMapper
             Expression.Assign(obj, Expression.New(typeof(T)))
         };
 
+        // Resolve every property to its reader ordinal first, then emit the reads in ascending
+        // ordinal order. CommandBehavior.SequentialAccess requires columns to be read strictly
+        // left-to-right, so the physical read order must follow the result-set schema - not the
+        // DTO's property declaration order.
+        var plan = new List<(int Ordinal, ColumnMap Column)>(columns.Count);
         foreach (var column in columns)
         {
             int ord;
@@ -296,6 +301,13 @@ public static class RuntimeMapper
                 }
             }
 
+            plan.Add((ord, column));
+        }
+
+        plan.Sort((a, b) => a.Ordinal.CompareTo(b.Ordinal));
+
+        foreach (var (ord, column) in plan)
+        {
             var isDbNull = Expression.Call(r, nameof(SqlDataReader.IsDBNull), null, Expression.Constant(ord));
 
             var propertyType = column.Property.PropertyType;
@@ -349,17 +361,20 @@ public static class RuntimeMapper
     internal static FluentSqlMappingException BuildMappingException(
         string columnName, string propertyName, Type targetType, SqlDataReader reader, int ordinal, Exception inner)
     {
-        string valueText;
-        try
-        {
-            valueText = reader.IsDBNull(ordinal) ? "NULL" : $"'{reader.GetValue(ordinal)}' ({reader.GetFieldType(ordinal).Name})";
-        }
-        catch
-        {
-            valueText = "<unavailable>";
-        }
+        // Try to enrich the message with the source column's DB type and (when the reader can
+        // still surface it) the offending value. Under CommandBehavior.SequentialAccess the value
+        // has already been consumed by the failed read, so this stays best-effort.
+        string sourceType;
+        try { sourceType = reader.GetFieldType(ordinal).Name; }
+        catch { sourceType = "unknown"; }
 
-        var message = $"Failed to map column '{columnName}' (value: {valueText}) to property '{propertyName}' of type '{targetType.Name}'.";
+        string? valueText = null;
+        try { valueText = reader.IsDBNull(ordinal) ? "NULL" : reader.GetValue(ordinal)?.ToString(); }
+        catch { /* sequential access: value already consumed */ }
+
+        var valuePart = valueText is null ? string.Empty : $" (value: '{valueText}')";
+        var message =
+            $"Failed to map column '{columnName}' [{sourceType}]{valuePart} to property '{propertyName}' of type '{targetType.Name}'.";
         return new FluentSqlMappingException(columnName, propertyName, targetType, message, inner);
     }
 
