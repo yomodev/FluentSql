@@ -3,6 +3,11 @@ using System.Runtime.CompilerServices;
 
 namespace FluentSqlLib;
 
+/// <summary>
+/// Default <see cref="IFluentSql"/> implementation. Construct with a logger and settings
+/// (connection string + command timeout); it is a lightweight factory, so a new instance per
+/// unit of work is fine.
+/// </summary>
 public class FluentSql<TSettings>(ILogger<TSettings> logger, TSettings settings)
     : IFluentSql
     where TSettings : IFluentSqlSettings

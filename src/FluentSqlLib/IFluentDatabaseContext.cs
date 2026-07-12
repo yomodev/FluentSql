@@ -1,7 +1,13 @@
 ﻿namespace FluentSqlLib;
 
+/// <summary>
+/// Database-level metadata and DDL: list tables/views/functions/procedures/schemas, and drop or
+/// truncate objects. Operations are scoped to <see cref="Name"/> by pointing the connection at that
+/// database, and generate provider-appropriate SQL via the client's Build*Sql methods.
+/// </summary>
 public interface IFluentDatabaseContext
 {
+    /// <summary>The target database name.</summary>
     string Name { get; }
 
     ValueTask<bool> DropIndexAsync(

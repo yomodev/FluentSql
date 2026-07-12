@@ -1,5 +1,11 @@
 ﻿namespace FluentSqlLib;
 
+/// <summary>
+/// A stored-procedure call context. Add input parameters with <c>WithParam</c>, declare output
+/// parameters with <c>WithOutputParam</c>, then read rows (<c>EnumerateAsync&lt;T&gt;</c>), a return/
+/// scalar value (<c>GetAsync&lt;T&gt;</c>), output parameters (<c>GetOutputAsync</c>), or multiple
+/// result sets (<c>QueryMultipleAsync</c>). Synchronous counterparts exist for each.
+/// </summary>
 public interface IFluentStoredProcedureContext: ISpParam
 {
 }

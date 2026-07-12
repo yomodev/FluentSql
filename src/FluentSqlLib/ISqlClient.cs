@@ -2,6 +2,11 @@ using System.Data.Common;
 
 namespace FluentSqlLib;
 
+/// <summary>
+/// Low-level command client: builds and executes a single <see cref="IQuery"/> and maps its
+/// results. Most code uses the fluent contexts from <see cref="IFluentSql"/> instead of this
+/// directly. Every async member has a synchronous counterpart.
+/// </summary>
 public interface ISqlClient : IDisposable
 {
     /// <summary>
